@@ -47,3 +47,5 @@ Desktop.ini
 *.orig
 .gitignore
 EOF
+package-lock.json
+Temp/
