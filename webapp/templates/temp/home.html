@@ -1,0 +1,182 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row">
+        <!-- Информация о счете -->
+        <div class="col-lg-4 col-md-6 mb-4">
+            <div class="card bg-dark text-light h-100">
+                <div class="card-body">
+                    <h4 class="card-title">Информация о счете</h4>
+                    <p><strong>Баланс:</strong> ${{ total_balance }}</p>
+                    <p><strong>Средства:</strong> ${{ equity }}</p>
+                    <p><strong>Маржа:</strong> ${{ margin }}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Информация о торговых парах -->
+        <div class="col-lg-8 col-md-6 mb-4">
+            <div class="card bg-dark text-light h-100">
+                <div class="card-body">
+                    <h4 class="card-title">Торговые Пары</h4>
+                    <div class="row">
+                        <div class="col-md-8">
+                            <table class="table table-dark">
+                                <thead>
+                                    <tr>
+                                        <th>Инструмент</th>
+                                        <th>Bid</th>
+                                        <th>Ask</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for pair in major_pairs %}
+                                    <tr>
+                                        <td>{{ pair.name }}</td>
+                                        <td>{{ pair.bid }}</td>
+                                        <td>{{ pair.ask }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="additional_pair">Выберите дополнительный инструмент:</label>
+                            <select id="additional_pair" class="form-select" onchange="updateAdditionalInstrument(this.value);">
+                                <option value="">-- Выберите инструмент --</option>
+                                {% for instrument in all_instruments %}
+                                <option value="{{ instrument }}">{{ instrument }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Графическое изменение баланса (Line Chart) -->
+    <div class="row mt-5">
+        <div class="col-lg-12">
+            <div class="card bg-secondary text-white">
+                <div class="card-body">
+                    <h3>Графическое изменение баланса</h3>
+                    <canvas id="balanceChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- История торгов за последние 7 дней -->
+    <div class="row mt-5">
+        <div class="col-lg-12">
+            <div class="card bg-dark text-light">
+                <div class="card-body">
+                    <h3>История торгов за последние 7 дней</h3>
+                    <table class="table table-dark">
+                        <thead>
+                            <tr>
+                                <th>Дата</th>
+                                <th>Инструмент</th>
+                                <th>Тип</th>
+                                <th>Объем</th>
+                                <th>Результат</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for trade in recent_trades %}
+                            <tr>
+                                <td>{{ trade.date }}</td>
+                                <td>{{ trade.instrument }}</td>
+                                <td>{{ trade.type }}</td>
+                                <td>{{ trade.volume }}</td>
+                                <td>{{ trade.result }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Статистика прибыльных и убыточных сделок (Donut Chart) -->
+    <div class="row mt-5">
+        <div class="col-lg-6">
+            <div class="card bg-secondary text-white">
+                <div class="card-body">
+                    <h3>Статистика прибыльных и убыточных сделок</h3>
+                    <canvas id="profitLossChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Line Chart for Balance Changes
+    const balanceCtx = document.getElementById('balanceChart').getContext('2d');
+    const balanceChart = new Chart(balanceCtx, {
+        type: 'line',
+        data: {
+            labels: {{ balance_dates|safe }},
+            datasets: [{
+                label: 'Баланс',
+                data: {{ balance_values|safe }},
+                borderColor: 'rgba(75, 192, 192, 1)',
+                backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                x: {
+                    display: true,
+                    title: {
+                        display: true,
+                        text: 'Дата'
+                    }
+                },
+                y: {
+                    display: true,
+                    title: {
+                        display: true,
+                        text: 'Баланс'
+                    }
+                }
+            }
+        }
+    });
+
+    // Donut Chart for Profit and Loss Statistics
+    const profitLossCtx = document.getElementById('profitLossChart').getContext('2d');
+    const profitLossChart = new Chart(profitLossCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Прибыльные сделки', 'Убыточные сделки'],
+            datasets: [{
+                data: [{{ profitable_trades }}, {{ losing_trades }}],
+                backgroundColor: ['rgba(54, 162, 235, 0.7)', 'rgba(255, 99, 132, 0.7)'],
+                borderColor: ['rgba(54, 162, 235, 1)', 'rgba(255, 99, 132, 1)'],
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'top',
+                },
+                title: {
+                    display: true,
+                    text: 'Прибыльные и убыточные сделки'
+                }
+            }
+        }
+    });
+</script>
+{% endblock %}

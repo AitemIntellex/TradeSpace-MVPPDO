@@ -1,0 +1,169 @@
+{% extends "base.html" %} {% load static %} {% block content %}
+<div class="grid-container">
+  <h2 class="text-center">Торговый Калькулятор</h2>
+
+  <!-- Калькулятор размера позиции -->
+  <div class="card mt-4 shadow">
+    <div class="card-header bg-primary text-white">
+      <h5 class="text-center">Калькулятор размера позиции</h5>
+    </div>
+    <div class="card-body">
+      <form id="positionSizeForm">
+        <div class="mb-3">
+          <label for="deposit" class="form-label">Размер депозита ($):</label>
+          <input
+            type="number"
+            class="form-control"
+            id="deposit"
+            step="0.01"
+            required
+          />
+        </div>
+        <div class="mb-3">
+          <label for="riskPercentage" class="form-label"
+            >Риск на сделку (%):</label
+          >
+          <input
+            type="number"
+            class="form-control"
+            id="riskPercentage"
+            step="0.01"
+            required
+          />
+        </div>
+        <div class="mb-3">
+          <label for="stopLoss" class="form-label"
+            >Расстояние до стоп-лосса (пункты):</label
+          >
+          <input
+            type="number"
+            class="form-control"
+            id="stopLoss"
+            step="0.01"
+            required
+          />
+        </div>
+        <div class="mb-3">
+          <label for="pipValue" class="form-label">Стоимость пункта ($):</label>
+          <input
+            type="number"
+            class="form-control"
+            id="pipValue"
+            step="0.01"
+            required
+          />
+        </div>
+        <button
+          type="button"
+          class="btn btn-primary w-100"
+          onclick="calculatePositionSize()"
+        >
+          Рассчитать
+        </button>
+      </form>
+      <h5 class="mt-4 text-center">
+        Результат: <span id="positionSizeResult">-</span> лотов
+      </h5>
+    </div>
+  </div>
+
+  <!-- Калькулятор прибыли и убытка -->
+  <div class="card mt-4 shadow">
+    <div class="card-header bg-secondary text-white">
+      <h5 class="text-center">Калькулятор прибыли и убытка (P&L)</h5>
+    </div>
+    <div class="card-body">
+      <form id="profitLossForm">
+        <div class="mb-3">
+          <label for="entryPrice" class="form-label">Цена входа:</label>
+          <input
+            type="number"
+            class="form-control"
+            id="entryPrice"
+            step="0.0001"
+            required
+          />
+        </div>
+        <div class="mb-3">
+          <label for="exitPrice" class="form-label">Цена выхода:</label>
+          <input
+            type="number"
+            class="form-control"
+            id="exitPrice"
+            step="0.0001"
+            required
+          />
+        </div>
+        <div class="mb-3">
+          <label for="lotSize" class="form-label">Объем позиции (лоты):</label>
+          <input
+            type="number"
+            class="form-control"
+            id="lotSize"
+            step="0.01"
+            required
+          />
+        </div>
+        <div class="mb-3">
+          <label for="pipValuePL" class="form-label"
+            >Стоимость пункта ($):</label
+          >
+          <input
+            type="number"
+            class="form-control"
+            id="pipValuePL"
+            step="0.01"
+            required
+          />
+        </div>
+        <button
+          type="button"
+          class="btn btn-secondary w-100"
+          onclick="calculateProfitLoss()"
+        >
+          Рассчитать
+        </button>
+      </form>
+      <h5 class="mt-4 text-center">
+        Результат: <span id="profitLossResult">-</span> $
+      </h5>
+    </div>
+  </div>
+</div>
+<script>
+  function calculatePositionSize() {
+    const deposit = parseFloat(document.getElementById("deposit").value);
+    const riskPercentage = parseFloat(
+      document.getElementById("riskPercentage").value
+    );
+    const stopLoss = parseFloat(document.getElementById("stopLoss").value);
+    const pipValue = parseFloat(document.getElementById("pipValue").value);
+
+    if (deposit && riskPercentage && stopLoss && pipValue) {
+      const riskAmount = (deposit * riskPercentage) / 100;
+      const positionSize = riskAmount / (stopLoss * pipValue);
+      document.getElementById("positionSizeResult").textContent =
+        positionSize.toFixed(2);
+    } else {
+      document.getElementById("positionSizeResult").textContent =
+        "Ошибка ввода!";
+    }
+  }
+
+  function calculateProfitLoss() {
+    const entryPrice = parseFloat(document.getElementById("entryPrice").value);
+    const exitPrice = parseFloat(document.getElementById("exitPrice").value);
+    const lotSize = parseFloat(document.getElementById("lotSize").value);
+    const pipValue = parseFloat(document.getElementById("pipValuePL").value);
+
+    if (entryPrice && exitPrice && lotSize && pipValue) {
+      const profitLoss = (exitPrice - entryPrice) * lotSize * pipValue;
+      document.getElementById("profitLossResult").textContent =
+        profitLoss.toFixed(2);
+    } else {
+      document.getElementById("profitLossResult").textContent = "Ошибка ввода!";
+    }
+  }
+</script>
+
+{% endblock %}

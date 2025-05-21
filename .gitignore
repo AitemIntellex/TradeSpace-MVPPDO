@@ -1,0 +1,47 @@
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# macOS
+.DS_Store
+
+# Python
+*.pyc
+__pycache__/
+.Python
+
+# VSCode
+.vscode/
+
+# Virtual Environment
+venv/
+.nenv
+
+.venv
+__pycache__/
+*.py[cod]
+*.log
+*.sqlite3
+.vscode/
+.idea/
+
+# Environment variables
+.env
+config.py
+
+# Config files
+config/settings.py
+jafar/config.py
+
+# Logs
+*.log
+
+# Temp files
+*.tmp
+
+# Data files
+data/
+model
+archive-py
+model

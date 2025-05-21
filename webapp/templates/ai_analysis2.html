@@ -1,0 +1,236 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="row g-3">
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="card hp-card-1">
+            <div class="card-body p-16">
+                <div class="row align-items-center flex-shrink-1 w-100 mx-0">
+                    <div style="width: 106px;" class="px-0">
+                        <div class="h-100 bg-primary-4 hp-bg-color-dark-90 d-flex align-items-center justify-content-center rounded-4">
+                            <div id="statistics-order"></div>
+                        </div>
+                    </div>
+
+                    <div class="col pe-0">
+                        <h3 class="mb-0 fw-semibold">{{ equity }}</h3>
+                        <p><strong>Баланс:</strong> ${{ total_balance }}</p>
+                        <p><strong>Маржа:</strong> ${{ margin }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-sm-6 col-xl-3">
+        <div class="card hp-card-1">
+            <div class="card-body p-16">
+                <div class="row align-items-center flex-shrink-1 w-100 mx-0">
+                    <div style="width: 106px;" class="px-0">
+                        <div class="h-100 bg-primary-4 hp-bg-color-dark-90 d-flex align-items-center justify-content-center rounded-4">
+                            <div id="statistics-order"></div>
+                        </div>
+                    </div>
+
+                    <div class="col pe-0">
+                        <h3 class="mb-0 fw-semibold">{{ selected_pair }}</h3>
+                        <p><strong>Bid:</strong> {{ selected_pair_tick.bid|default:"Нет данных" }}</p>
+                        <p><strong>Ask:</strong> {{ selected_pair_tick.ask|default:"Нет данных" }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<div class="container mt-5">
+
+    {% if error %}
+        <div class="alert alert-danger" role="alert">
+            Ошибка: {{ error }}
+        </div>
+    {% endif %}
+
+<div class="card bg-dark text-white mb-4">
+    <div class="card-body">
+        <h3>Открытые позиции</h3>
+        {% if open_positions %}
+            <table class="table table-dark table-striped">
+                <thead>
+                    <tr>
+                        <th>Инструмент</th>
+                        <th>Объем</th>
+                        <th>Прибыль</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for position in open_positions %}
+                        <tr>
+                            <td>{{ position.symbol }}</td>
+                            <td>{{ position.volume }}</td>
+                            <td>{{ position.profit }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p>Нет открытых позиций.</p>
+        {% endif %}
+    </div>
+</div>
+
+    <!-- Выбор инструмента для глубокого анализа -->
+    <h2>Выбор торгового инструмента</h2>
+
+    <form id="symbolForm" method="GET" action="." class="mb-4">
+    <div>
+        <select id="category_select" class="form-select" onchange="updateInstruments(this.value);">
+        <label for="category_select">Выберите категорию:</label>
+            <option value="majors">Major Currency Pairs</option>
+            <option value="metals">Metals</option>
+            <option value="cryptocurrencies">Cryptocurrencies</option>
+            <option value="stocks">Stocks</option>
+            <option value="indices">Indices</option>
+            <option value="commodities">Commodities</option>
+        </select>
+    </div>
+
+
+    <div class="card bg-dark text-white">
+                    <select name="symbol" id="symbol" class="form-select" onchange="this.form.submit();">
+                        <!-- Значения будут добавлены динамически с помощью JS -->
+                    </select>
+                </div>
+
+            </div>
+        </div>
+    </form>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        const instruments = {
+            majors: {{ majors|safe }},
+            metals: {{ metals|safe }},
+            cryptocurrencies: {{ cryptocurrencies|safe }},
+            stocks: {{ stocks|safe }},
+            indices: {{ indices|safe }},
+            commodities: {{ commodities|safe }}
+        };
+
+        function updateInstruments(category) {
+            const instrumentSelect = document.getElementById('symbol');
+            instrumentSelect.innerHTML = ""; // Очищаем текущие значения
+
+            if (instruments[category]) {
+                instruments[category].forEach(instrument => {
+                    const option = new Option(instrument, instrument);
+                    instrumentSelect.add(option);
+                });
+            } else {
+                console.warn("Не удалось найти категорию:", category);
+            }
+        }
+
+        document.addEventListener("DOMContentLoaded", function () {
+            updateInstruments('majors'); // Инициализация списка инструментов при загрузке страницы
+        });
+    </script>
+
+
+
+    <form method="POST">
+        {% csrf_token %}
+        <button type="submit" name="analyze_with_ai" class="btn btn-dashed text-secondary border-secondary hp-hover-text-color-secondary-2 hp-hover-border-color-secondary-2">Глубокий Анализ</button>
+    </form>
+
+    {% if ai_analysis %}
+        <div class="card text-white bg-dark">
+            <div class="card-body">
+                <h3>Результат AI Анализа</h3>
+                <p>{{ ai_analysis }}</p>
+            </div>
+        </div>
+    {% endif %}
+<h3 class="text-light mt-5">Установка отложенного ордера</h3>
+<div class="row">
+    <div class="col-md-6">
+        <form method="POST" id="pendingOrderForm">
+            {% csrf_token %}
+            <div class="mb-3">
+                <label for="order_type" class="form-label">Тип ордера:</label>
+                <select name="order_type" class="form-select" id="order_type">
+                    <option value="buy_limit">Buy Limit</option>
+                    <option value="sell_limit">Sell Limit</option>
+                    <option value="buy_stop">Buy Stop</option>
+                    <option value="sell_stop">Sell Stop</option>
+                </select>
+            </div>
+            <div class="mb-3">
+                <label for="volume" class="form-label">Объем:</label>
+                <input type="number" step="0.01" name="volume" class="form-control" id="volume_pending" value="0.01">
+            </div>
+            <div class="mb-3">
+                <label for="price" class="form-label">Цена исполнения:</label>
+                <input type="number" step="0.00001" name="price" class="form-control" id="price_pending">
+            </div>
+            <div class="mb-3">
+                <label for="take_profit" class="form-label">Take Profit (опционально):</label>
+                <input type="number" step="0.00001" name="take_profit" class="form-control" id="take_profit_pending">
+            </div>
+            <div class="mb-3">
+                <label for="stop_loss" class="form-label">Stop Loss (опционально):</label>
+                <input type="number" step="0.00001" name="stop_loss" class="form-control" id="stop_loss_pending">
+            </div>
+            <button type="submit" name="place_pending_order" class="btn btn-warning">Установить ордер</button>
+        </form>
+    </div>
+
+    <div class="col-md-6">
+        <h3 class="text-light mt-5">Открытие рыночной позиции</h3>
+        <form method="POST" id="marketPositionForm">
+            {% csrf_token %}
+            <div class="mb-3">
+                <label for="direction" class="form-label">Направление:</label>
+                <select name="direction" class="form-select" id="direction">
+                    <option value="buy">Buy</option>
+                    <option value="sell">Sell</option>
+                </select>
+            </div>
+            <div class="mb-3">
+                <label for="volume" class="form-label">Объем:</label>
+                <input type="number" step="0.01" name="volume" class="form-control" id="volume_market" value="0.01">
+            </div>
+            <div class="mb-3">
+                <label for="take_profit" class="form-label">Take Profit (опционально):</label>
+                <input type="number" step="0.00001" name="take_profit" class="form-control" id="take_profit_market">
+            </div>
+            <div class="mb-3">
+                <label for="stop_loss" class="form-label">Stop Loss (опционально):</label>
+                <input type="number" step="0.00001" name="stop_loss" class="form-control" id="stop_loss_market">
+            </div>
+            <button type="submit" name="open_position" class="btn btn-success">Открыть позицию</button>
+        </form>
+    </div>
+</div>
+
+
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        // Сброс формы после успешной отправки
+        document.getElementById('marketPositionForm').onsubmit = function () {
+            setTimeout(() => {
+                this.reset();
+            }, 100);
+        };
+        document.getElementById('pendingOrderForm').onsubmit = function () {
+            setTimeout(() => {
+                this.reset();
+            }, 100);
+        };
+    });
+</script>
+
+{% endblock %}
