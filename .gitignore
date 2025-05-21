@@ -1,51 +1,81 @@
-cat > .gitignore <<EOF
 # Python
 __pycache__/
 *.py[cod]
-*.so
-*.egg
-*.egg-info/
 *.pyo
 *.pyd
-*.log
+*.so
 
-# Django
+# Virtual Environments
+.env/
+.venv/
+venv/
+ENV/
+env.bak/
+env/
+
+# Other folders
+/brain/
+/manager/
+/management/
+/webapp/
+
+
+# Django & DB
+db.sqlite3
 *.sqlite3
-*.db
-.env
-.env.*
-*.secret
-media/
-staticfiles/
-local_settings.py
+*.log
+*.pot
+*.pyc
 
-# VS Code
+# IDEs
 .vscode/
-*.code-workspace
-.venv
+.idea/
+*.sublime-project
+*.sublime-workspace
 
-# Node / Tailwind
+# OS Files
+.DS_Store
+Thumbs.db
+
+# Node / JS packages
 node_modules/
-package-lock.json
 npm-debug.log
 yarn-debug.log
 yarn-error.log
-dist/
-build/
-
-# System
-.DS_Store
-*.Zone.Identifier
-*.lnk
-Thumbs.db
-ehthumbs.db
-Desktop.ini
-*.swp
-*.swo
-
-# Git
-*.orig
-.gitignore
-EOF
 package-lock.json
+
+# Build
+build/
+dist/
+*.egg-info/
+*.egg
+
+# Static & Generated Files (leave if version-controlled manually)
+staticfiles/
+*.bak
+*.tmp
+
+# Test / output artifacts
+logs/
+*.log
+*.html
+*.txt
+output-*.*
+report_*.html
+
+# TradeSpace Specific (custom temp dirs)
 Temp/
+temp/
+*.code-workspace
+structure*.txt
+map.txt
+
+# Secrets & configs
+*.env
+*.key
+credentials*.json
+secret*.json
+*.pem
+
+# Other
+trade_blog_*.md
