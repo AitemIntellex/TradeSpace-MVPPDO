@@ -54,7 +54,8 @@ cd TradeSpace-MVPPDO
 3. Configure your environment
    Create a .env file with your keys:
 
-OPENAI_API_KEY=your_key_here
+<!-- OPENAI_API_KEY=your_key_here -->
+
 MT5_LOGIN=123456
 MT5_PASSWORD=your_password
 jango_secret_key = you django secret key

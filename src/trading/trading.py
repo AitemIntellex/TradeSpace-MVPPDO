@@ -45,7 +45,17 @@ logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
 
+from dotenv import load_dotenv
+import os
+import openai
+
 load_dotenv()
+
+# Проверка
+print("🔑 OPENAI_API_KEY =", os.getenv("OPENAI_API_KEY"))
+
+openai.api_key = os.getenv("OPENAI_API_KEY")
+
 # openai.api_key = os.getenv("OPENAI_API_KEY") # Если используется AI, можно раскомментировать
 
 

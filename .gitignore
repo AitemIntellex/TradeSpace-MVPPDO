@@ -76,6 +76,6 @@ map.txt
 credentials*.json
 secret*.json
 *.pem
-
+.env
 # Other
 trade_blog_*.md
