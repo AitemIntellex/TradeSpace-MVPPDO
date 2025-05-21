@@ -1,0 +1,114 @@
+{% extends "base.html" %} {% load static %} {% load custom_tags %} {% load custom_filters %}
+ {% block content %}
+
+  <!-- Включаем наш navbar -->
+  {% include "partials/navbar.html" %}
+
+<form method="get" id="timeframe-form">
+    <label for="timeframe">Выберите таймфрейм:</label>
+    <select name="timeframe" id="timeframe" onchange="document.getElementById('timeframe-form').submit();">
+        {% for tf_label, tf_value in timeframes.items %}
+        <option value="{{ tf_label }}" {% if tf_label == timeframe_label %}selected{% endif %}>
+            {{ tf_label }}
+        </option>
+        {% endfor %}
+    </select>
+</form>
+
+  <!-- Пример: выводим структуру инструмента по каждому таймфрейму -->
+  <table class="analysis-table">
+    <thead>
+        <tr>
+            <th>Таймфрейм</th>
+            <th>Сессия</th>
+            <th>Актуальная цена</th>
+            <th>OHLC</th>
+            <th>Pivot Levels</th>
+            <th>Макс/Мин экстремумы</th>
+            <th>Fibonacci OTE</th>
+            <th>Полосы Боллинджера</th>
+            <th>VWAP</th>
+            <th>ATR</th>
+            <th>MFI</th>
+            <th>CCI</th>
+            <th>Stochastic</th>
+            <th>SMA</th>
+            <th>MACD/Signal</th>
+            <th>RSI</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for timeframe, data in indicators_by_timeframe.items %}
+        {% with structure_data=structure_by_timeframe|get_value:timeframe %}
+        <tr>
+            <td>{{ timeframe }}</td>
+            <td>{{ session|default:"Нет данных" }}</td>
+            <td>
+                {{ bid|default:"Нет данных" }}<br>
+                {{ ask|default:"Нет данных" }}
+            </td>
+            <td>
+                O: {{ data.ohlc.0.open|floatformat:5 }}<br>
+                H: {{ data.ohlc.0.high|floatformat:5 }}<br>
+                L: {{ data.ohlc.0.low|floatformat:5 }}<br>
+                C: {{ data.ohlc.0.close|floatformat:5 }}
+            </td>
+            <td>
+                Pivot: {{ data.pivot.0|floatformat:5 }}<br>
+                Resistance: {{ data.pp_resistance.0|join:", "|default:"Нет данных" }}<br>
+                Support: {{ data.pp_support.0|join:", "|default:"Нет данных" }}
+            </td>
+
+            <td>
+            {% if structure_data %}
+                Поддержка: {{ structure_data.support|default:"-" }}<br>
+                Сопротивление: {{ structure_data.resistance|default:"-" }}
+            {% else %}
+                Нет данных
+            {% endif %}
+            </td>
+            <td>
+              {% with fib_data=fibonacci_by_timeframe|get_value:timeframe %}
+                  {% if fib_data %}
+                      {% for level, value in fib_data.fib_levels|dict_items %}
+                          {{ level }}: {{ value|floatformat:5 }}<br>
+                      {% endfor %}
+                      Local High: {{ fib_data.local_high|default:"-" }}<br>
+                      Local Low: {{ fib_data.local_low|default:"-" }}
+                  {% else %}
+                      Нет данных
+                  {% endif %}
+              {% endwith %}
+          </td>
+            <td>
+                Верхний: {{ data.upper_band.0|floatformat:5 }}, Нижний: {{ data.lower_band.0|floatformat:5 }}
+            </td>
+            <td>{{ data.vwap|join:", " }}</td>
+            <td>{{ data.atr.0|floatformat:5|default:"Нет данных" }}</td>
+            <td>{{ data.mfi.0|floatformat:5|default:"Нет данных" }}</td>
+            <td>{{ data.cci.0|floatformat:5|default:"Нет данных" }}</td>
+            <td>
+                {% if data.stochastic_k and data.stochastic_d %}
+                    K: {{ data.stochastic_k.0|floatformat:5 }}, D: {{ data.stochastic_d.0|floatformat:5 }}
+                {% else %}
+                    Нет данных
+                {% endif %}
+            </td>
+            <td>{{ data.sma.0|floatformat:5|default:"Нет данных" }}</td>
+            <td>
+                MACD: {{ data.macd.0|floatformat:5 }}, Signal: {{ data.signal.0|floatformat:5 }}
+            </td>
+            <td>{{ data.rsi.0|floatformat:5|default:"Нет данных" }}</td>
+        </tr>
+        {% endwith %}
+        {% endfor %}
+    </tbody>
+</table>
+
+
+
+
+  </table>
+
+  {% endblock %}
+</div>

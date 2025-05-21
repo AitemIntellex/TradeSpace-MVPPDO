@@ -1,0 +1,60 @@
+{% comment %} templates/technical_analysis/partials/strategies_table.html
+{%endcomment %}
+<table id="strategies-table">
+  <thead>
+    <tr>
+      <th>Таймфрейм</th>
+      <th>Стратегия</th>
+      <th>Результат</th>
+      <th>Процесс</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for timeframe, strategies in strategies_process_by_timeframe.items %}
+    <tr>
+      <td rowspan="3">{{ timeframe }}</td>
+      <td>ICT</td>
+      <td>{{ strategies.ICT.signal|default:"-" }}</td>
+      <td>
+        <ul>
+          <li>Тренд: {{ strategies.ICT.trend|default:"-" }}</li>
+          <li>FVG-зоны: {{ strategies.ICT.fvg_zones|default:"-" }}</li>
+          <li>Поддержка: {{ strategies.ICT.support|default:"-" }}</li>
+          <li>Сопротивление: {{ strategies.ICT.resistance|default:"-" }}</li>
+          <li>
+            Уровни Фибоначчи: {% for level, value in
+            strategies.ICT.fib_levels.items %} {{ level }}: {{ value|default:"-"
+            }}<br />
+            {% endfor %}
+          </li>
+        </ul>
+      </td>
+    </tr>
+    <tr>
+      <td>SMC</td>
+      <td>{{ strategies.SMC.signal|default:"-" }}</td>
+      <td>
+        <ul>
+          <li>Тренд: {{ strategies.SMC.trend|default:"-" }}</li>
+          <li>Поддержка: {{ strategies.SMC.support|default:"-" }}</li>
+          <li>Сопротивление: {{ strategies.SMC.resistance|default:"-" }}</li>
+          <li>FVG-зоны: {{ strategies.SMC.fvg_zones|default:"-" }}</li>
+        </ul>
+      </td>
+    </tr>
+    <tr>
+      <td>SNR</td>
+      <td>{{ strategies.SNR.signal|default:"-" }}</td>
+      <td>
+        <ul>
+          <li>Тренд: {{ strategies.SNR.trend|default:"-" }}</li>
+          <li>Уровень поддержки: {{ strategies.SNR.support|default:"-" }}</li>
+          <li>
+            Уровень сопротивления: {{ strategies.SNR.resistance|default:"-" }}
+          </li>
+        </ul>
+      </td>
+    </tr>
+    {% comment %} {% endfor %} {% endcomment %}
+  </tbody>
+</table>

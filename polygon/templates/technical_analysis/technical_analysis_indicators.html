@@ -1,0 +1,363 @@
+{% extends "base.html" %} {% load static %} {% load custom_tags %} {% load custom_filters %}
+ {% block content %}
+
+  <!-- Включаем наш navbar -->
+  {% include "partials/navbar.html" %}
+
+
+  <!-- Пример: выводим структуру инструмента по каждому таймфрейму -->
+<table class="analysis-table">
+  <thead>
+    <tr>
+      <th>Таймфрейм</th>
+      <th>Сессия</th>
+      <th>Актуальная цена</th>
+      <th>OHLC</th>
+      <th>Pivot Levels</th>
+      <th>Макс/Мин экстремумы</th>
+      <th>Fibonacci OTE</th>
+      <th>Полосы Боллинджера</th>
+      <th>VWAP</th>
+      <th>ATR</th>
+      <th>MFI</th>
+      <th>CCI</th>
+      <th>Stochastic</th>
+      <th>SMA</th>
+      <th>MACD/Signal</th>
+      <th>RSI</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for data in merged_data_by_timeframe %}
+      <tr style="background-color: {{ data.structure.trend_color|default:'#FFFFFF' }};">
+
+        <!-- Таймфрейм -->
+        <td style="background-color: {{ data.structure.trend_color|default:'#FFFFFF' }};">
+          {{ data.timeframe }}
+        </td>
+
+        <!-- Сессия -->
+        <td>{{ session|default:"Нет данных" }}</td>
+
+        <!-- Актуальная цена -->
+        <td>
+          {{ bid|default:"Нет данных" }}<br>
+          {{ ask|default:"Нет данных" }}
+        </td>
+
+        <!-- OHLC -->
+        <td class="clickable-cell" data-category="ohlc"
+            style="color: {% if data.indicators.ohlc.0.open < data.indicators.ohlc.0.close %}
+                        green
+                    {% elif data.indicators.ohlc.0.open > data.indicators.ohlc.0.close %}
+                        red
+                    {% else %}
+                        {{ data.structure.trend_color|default:'#000000' }}
+                    {% endif %};">
+            {% if data.indicators.ohlc.0.open < data.indicators.ohlc.0.close %}
+                <br>
+            {% elif data.indicators.ohlc.0.open > data.indicators.ohlc.0.close %}
+                <br>
+            {% else %}
+                <br>
+            {% endif %}
+            O: {{ data.indicators.ohlc.0.open|floatformat:5|default:"-" }}<br>
+            H: {{ data.indicators.ohlc.0.high|floatformat:5|default:"-" }}<br>
+            L: {{ data.indicators.ohlc.0.low|floatformat:5|default:"-" }}<br>
+            C: {{ data.indicators.ohlc.0.close|floatformat:5|default:"-" }}
+        </td>
+
+        <!-- Pivot Levels -->
+        <td class="clickable-cell" data-category="pivot"
+            style="color: {% if bid > data.indicators.pivot.0 %}green
+                        {% elif bid < data.indicators.pivot.0 %}red
+                        {% else %}#000{% endif %};">
+            {% if bid > data.indicators.pivot.0 %}
+
+            {% elif bid < data.indicators.pivot.0 %}
+
+            {% else %}
+
+            {% endif %}
+
+            R:
+            {% for res in data.indicators.pp_resistance %}
+                <span style="background-color: {% if bid < res %}#d4f7dc{% else %}#f0f0f0{% endif %};">
+                    {{ res|floatformat:5 }}
+                </span>
+                {% if not forloop.last %}, {% endif %}
+            {% empty %}
+                Нет данных
+            {% endfor %}
+            <br>
+
+            Pp: <span style="background-color: #f0f0f0;">
+                {{ data.indicators.pivot.0|floatformat:5|default:"-" }}
+            </span><br>
+
+            S:
+            {% for sup in data.indicators.pp_support %}
+                <span style="background-color: {% if bid > sup %}#f7d4d4{% else %}#f0f0f0{% endif %};">
+                    {{ sup|floatformat:5 }}
+                </span>
+                {% if not forloop.last %}, {% endif %}
+            {% empty %}
+                Нет данных
+            {% endfor %}
+        </td>
+
+        <!-- Экстремумы -->
+        <td>
+          A хай: {{ data.market_structure.absolute_high|floatformat:5|default:"-" }}<br>
+          Л хай: {{ data.market_structure.local_high|floatformat:5|default:"-" }}<br>
+          Л лоу: {{ data.market_structure.local_low|floatformat:5|default:"-" }}<br>
+          A лоу: {{ data.market_structure.absolute_low|floatformat:5|default:"-" }}
+        </td>
+
+        <!-- Краткая информация -->
+        <td>
+          <div class="fib-summary">
+
+            Текущая цена: {{ data.fibonacci.current_price|floatformat:5|default:"-" }}<br>
+                            OTE: {% if data.fibonacci.ote.in_ote %}<span class="text-success">Цена в зоне OTE</span>{% else %}<span class="text-danger">Цена вне зоны OTE</span>{% endif %}
+
+         <br>
+            <strong>R:</strong> {{ data.nearest_levels.nearest_support|floatformat:5 }}<br>
+            <strong>S:</strong> {{ data.nearest_levels.nearest_resistance|floatformat:5 }}
+          </div>
+
+          <div class="clickable-cell" data-category="pivot">
+            <strong>f R:</strong>
+            {% if data.fib_pivot_levels.Resistance %}
+            {% for level in data.fib_pivot_levels.Resistance %}
+            {{ level|floatformat:5 }}
+            {% if not forloop.last %}, {% endif %}
+            {% endfor %}
+            {% else %}
+            Нет данных
+            {% endif %}<br>
+            <strong>f Pp:</strong> {{ data.fib_pivot_levels.Pivot|floatformat:5|default:"-" }}<br>
+                <strong>f S:</strong>
+                {% if data.fib_pivot_levels.Support %}
+                    {% for level in data.fib_pivot_levels.Support %}
+                        {{ level|floatformat:5 }}
+                        {% if not forloop.last %}, {% endif %}
+                    {% endfor %}
+                {% else %}
+                    Нет данных
+                {% endif %}
+          </div>
+          <div class="fib-details hidden">
+            <strong>Уровни Фибоначчи:</strong><br>
+            {% for level, value in data.fibonacci.fib_levels.items %}
+              {{ level }}: {{ value|floatformat:5 }}<br>
+            {% endfor %}
+            <br>
+
+            <strong>Диапазоны Фибоначчи:</strong><br>
+            {% for level, range_value in data.fibonacci.fib_ranges.items %}
+              {{ level }}: {{ range_value|floatformat:5 }}<br>
+            {% endfor %}
+            <br>
+
+            <strong>Экстремумы:</strong><br>
+            High: {{ fib_data.absolute_high|floatformat:5 }}<br>
+            Low: {{ fib_data.absolute_low|floatformat:5 }}<br>
+            Local High: {{ fib_data.fibonacci.local_high|floatformat:5 }}<br>
+            Local Low: {{ fib_data.fibonacci.local_low|floatformat:5 }}<br>
+            <br>
+
+            <strong>Временные зоны:</strong><br>
+            {% for zone, time in data.time_zones.items %}
+              {{ zone }}: {{ time|date:"Y-m-d H:i:s" }}<br>
+            {% endfor %}
+          </div>
+          <!-- Кнопка для разворачивания -->
+          <button class="toggle-details">Показать детали</button>
+        </td>
+
+        <!-- Полосы Боллинджера (верхняя граница) -->
+        <td>
+          {{ data.indicators.upper_band.0|floatformat:5|default:"-" }}<br>Нижний: {{ data.indicators.lower_band.0|floatformat:5 }}
+        </td>
+        <!-- VWAP -->
+        <td>
+          {{ data.indicators.vwap|join:", "|default:"-" }}
+        </td>
+        <!-- ATR -->
+        <td>
+          {{ data.indicators.atr.0|floatformat:5|default:"-" }}
+        </td>
+        <!-- MFI -->
+        <td>
+          {{ data.indicators.mfi.0|floatformat:5|default:"-" }}
+        </td>
+        <!-- CCI -->
+        <td>
+          {{ data.indicators.cci.0|floatformat:5|default:"-" }}
+        </td>
+
+        <!-- Stochastic (только K здесь, при желании можно выводить D) -->
+        <td>
+          {{ data.indicators.stochastic_k.0|floatformat:5|default:"-" }}
+        </td>
+
+        <!-- SMA -->
+        <td>
+          {{ data.indicators.sma.0|floatformat:5|default:"-" }}
+        </td>
+
+        <!-- MACD/Signal -->
+        <td>
+          MACD: {{ data.indicators.macd.0|floatformat:5|default:"-" }},
+          Signal: {{ data.indicators.signal.0|floatformat:5|default:"-" }}
+        </td>
+
+        <!-- RSI -->
+        <td>
+          {{ data.indicators.rsi.0|floatformat:5|default:"-" }}
+        </td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+<table class="table table-striped table-bordered">
+            <thead class="thead-dark">
+                <tr>
+                    <th>Таймфрейм</th>
+                    <th>Сессия</th>
+                    <th>Актуальная цена</th>
+                    <th>OHLC</th>
+                    <th>Pivot Levels</th>
+                    <th>Макс/Мин экстремумы</th>
+                    <th>Fibonacci OTE</th>
+                    <th>Индикаторы</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for data in merged_data_by_timeframe %}
+                    <tr>
+                        <td>{{ data.timeframe }}</td>
+                        <td>{{ session|default:"Нет данных" }}</td>
+                        <td>
+                            Bid: {{ data.current_price.bid|default:"-" }}<br>
+                            Ask: {{ data.current_price.ask|default:"-" }}
+                        </td>
+                        <td>
+                            O: {{ data.ohlc.open|floatformat:5|default:"-" }}<br>
+                            H: {{ data.ohlc.high|floatformat:5|default:"-" }}<br>
+                            L: {{ data.ohlc.low|floatformat:5|default:"-" }}<br>
+                            C: {{ data.ohlc.close|floatformat:5|default:"-" }}
+                        </td>
+                        <td>
+                            Resistance: {{ data.pivot_levels.resistance|join:", "|default:"-" }}<br>
+                            Pivot: {{ data.pivot_levels.pivot|floatformat:5|default:"-" }}<br>
+                            Support: {{ data.pivot_levels.support|join:", "|default:"-" }}
+                        </td>
+                        <td>
+                            Абс. хай: {{ data.extremes.absolute_high|floatformat:5|default:"-" }}<br>
+                            Абс. лоу: {{ data.extremes.absolute_low|floatformat:5|default:"-" }}<br>
+                            Лок. хай: {{ data.extremes.local_high|floatformat:5|default:"-" }}<br>
+                            Лок. лоу: {{ data.extremes.local_low|floatformat:5|default:"-" }}
+                        </td>
+                        <td>
+                            Текущая цена: {{ data.fibonacci.current_price|floatformat:5|default:"-" }}<br>
+                            OTE: {% if data.fibonacci.ote.in_ote %}<span class="text-success">Цена в зоне OTE</span>{% else %}<span class="text-danger">Цена вне зоны OTE</span>{% endif %}
+                        </td>
+                        <td>
+                            RSI: {{ data.indicators.rsi|floatformat:2|default:"-" }}<br>
+                            MACD: {{ data.indicators.macd|floatformat:2|default:"-" }}<br>
+                            ATR: {{ data.indicators.atr|floatformat:2|default:"-" }}<br>
+                            SMA: {{ data.indicators.sma|floatformat:2|default:"-" }}
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+<table>
+    <thead>
+        <tr>
+            <th>Таймфрейм</th>
+            <th>Фибоначчи Уровни</th>
+            <th>Фибоначчи Диапазоны</th>
+            <th>Л Хай</th>
+            <th>Л Лоу</th>
+            <th>A Хай</th>
+            <th>A Лоу</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for timeframe, fib_data in fibonacci_by_timeframe.items %}
+        <tr>
+            <td>{{ timeframe }}</td>
+            <td>
+                <table>
+                    {% for level, value in fib_data.fib_levels.items %}
+                    <tr>
+                        <th>{{ level }}</th>
+                        <td>{{ value }}</td>
+                    </tr>
+                    {% endfor %}
+                </table>
+            </td>
+            <td>
+                <table>
+                    {% for range_name, range_value in fib_data.fib_ranges.items %}
+                    <tr>
+                        <th>{{ range_name }}</th>
+                        <td>{{ range_value }}</td>
+                    </tr>
+                    {% endfor %}
+                </table>
+            </td>
+            <td>{{ fib_data.local_high }}</td>
+            <td>{{ fib_data.local_low }}</td>
+            <td>{{ fib_data.absolute_high }}</td>
+            <td>{{ fib_data.absolute_low }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+  </table>
+<script>
+      document.addEventListener("DOMContentLoaded", function () {
+      // Обработка клика для разворачивания/сворачивания
+      const fibCells = document.querySelectorAll(".fib-cell");
+      fibCells.forEach(cell => {
+          cell.addEventListener("click", () => {
+              const details = cell.querySelector(".fib-details");
+              if (details) {
+                  details.classList.toggle("hidden");
+              }
+          });
+      });
+
+      // Добавляем функциональность копирования только цены
+      const priceElements = document.querySelectorAll(".copy-price");
+      priceElements.forEach(element => {
+          element.addEventListener("click", (event) => {
+              event.stopPropagation(); // Остановить всплытие, чтобы не сворачивался блок
+              const priceToCopy = element.dataset.price;
+              if (priceToCopy) {
+                  navigator.clipboard.writeText(priceToCopy).then(() => {
+                      // Визуальная индикация успешного копирования
+                      element.style.backgroundColor = "#d4edda"; // Зелёный фон
+                      setTimeout(() => {
+                          element.style.backgroundColor = ""; // Убираем через 1 секунду
+                      }, 1000);
+                  }).catch(err => {
+                      console.error("Ошибка копирования цены: ", err);
+                  });
+              }
+          });
+      });
+  });
+
+</script>
+
+
+
+
+
+  {% endblock %}
+</div>

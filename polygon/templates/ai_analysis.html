@@ -1,0 +1,271 @@
+{% extends "base.html" %}
+{% load static %}
+{% block content %}
+<div class="grid-container">
+  <!-- Таблица открытых позиций -->
+  {% if open_positions %}
+  <div class="card2-custom">
+    <h5 class="card-title">Открытые Позиции</h5>
+    <table class="trades-table">
+      <thead>
+        <tr>
+          <th>Инструмент</th>
+          <th>Объём</th>
+          <th>Прибыль</th>
+          <th>Тикет</th>
+          <th>Направление</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for position in open_positions %}
+        <tr>
+          <td>{{ position.symbol }}</td>
+          <td>{{ position.volume }}</td>
+          <td>{{ position.profit }}</td>
+          <td>{{ position.ticket }}</td>
+          <td>{{ position.order_type }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <h5 class="section-title">Нет открытых позиций</h5>
+  {% endif %}
+
+  <!-- Единая форма для всех анализов -->
+  <div class="row">
+    <div class="col-lg-12">
+      <form method="POST" class="inline-form">
+        {% csrf_token %}
+        <input type="hidden" name="symbol" value="{{ selected_pair }}">
+        <button type="submit" name="analyze_with_ai" class="btn btn-ghost btn-dark">Анализ</button>
+        <button type="submit" name="news_overview" class="btn btn-ghost btn-dark">Новостной обозреватель</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Карточки для результатов -->
+  <div id="ai-analysis-container" class="rec-container">
+    <h5></h5>
+    <div id="ai-analysis-text">
+      {% if ai_analysis %}{{ ai_analysis|safe }}{% else %}{% endif %}
+    </div>
+  </div>
+
+  <div id="news-analysis-container" class="rec-container">
+    <h5></h5>
+    <div id="news-analysis-text">
+      {% if news_analysis %}{{ news_analysis|safe }}{% else %}{% endif %}
+    </div>
+  </div>
+
+  <!-- Установка отложенного ордера -->
+  <div class="row">
+    <div class="col-md-6">
+      <h5 class="section-title">Установка отложенного ордера</h5>
+      <form method="POST" id="pendingOrderForm">
+        {% csrf_token %}
+        <div class="mb-3">
+          <label for="order_type" class="form-label">Тип ордера:</label>
+          <select name="order_type" class="form-control form-custom mr-3" id="order_type">
+            <option value="buy_limit">Buy Limit</option>
+            <option value="sell_limit">Sell Limit</option>
+            <option value="buy_stop">Buy Stop</option>
+            <option value="sell_stop">Sell Stop</option>
+          </select>
+        </div>
+        <div class="mb-3">
+          <label for="volume_pending" class="form-label">Объем:</label>
+          <input type="number" name="volume" class="form-control form-custom" id="volume_pending" value="0.01"
+            step="0.01" min="0.01" />
+        </div>
+        <div class="mb-3">
+          <label for="price_pending" class="form-label">Цена исполнения:</label>
+          <input type="text" name="price" class="form-control form-custom" id="price_pending" />
+        </div>
+        <div class="mb-3">
+          <label for="take_profit_pending" class="form-label">Take Profit:</label>
+          <input type="text" name="take_profit" class="form-control form-custom" id="take_profit_pending" />
+        </div>
+        <div class="mb-3">
+          <label for="stop_loss_pending" class="form-label">Stop Loss:</label>
+          <input type="text" name="stop_loss" class="form-control form-custom" id="stop_loss_pending" />
+        </div>
+        <button type="submit" name="place_pending_order" class="btn btn-primary w-100">Установить ордер</button>
+      </form>
+
+      <!-- Блок расчетов -->
+
+    </div>
+
+    <!-- Открытие рыночной позиции -->
+    <div class="col-md-6">
+      <h5 class="section-title">Открытие рыночной позиции</h5>
+      <form method="POST" id="marketPositionForm">
+        {% csrf_token %}
+        <div class="mb-3">
+          <label for="direction" class="form-label">Направление:</label>
+          <select name="direction" class="form-control form-custom mr-3" id="direction">
+            <option value="buy">Buy</option>
+            <option value="sell">Sell</option>
+          </select>
+        </div>
+        <div class="mb-3">
+          <label for="volume_market" class="form-label">Объем:</label>
+          <input type="number" name="volume" class="form-control form-custom" id="volume_market" value="0.01"
+            step="0.01" min="0.01" />
+        </div>
+        <div class="mb-3">
+          <label for="take_profit_market" class="form-label">Take Profit:</label>
+          <input type="text" name="take_profit" class="form-control form-custom" id="take_profit_market" />
+        </div>
+        <div class="mb-3">
+          <label for="stop_loss_market" class="form-label">Stop Loss:</label>
+          <input type="text" name="stop_loss" class="form-control form-custom" id="stop_loss_market" />
+        </div>
+        <button type="submit" name="open_position" class="btn btn-primary w-100 btn btn-ghost btn-dark">Открыть
+          позицию</button>
+      </form>
+
+      <!-- Блок расчетов -->
+
+    </div>
+  </div>
+
+
+  <!-- Обновлённый JavaScript -->
+  <script>
+    document.addEventListener("DOMContentLoaded", function () {
+      const form = document.querySelector("form.inline-form");
+      const buttons = form.querySelectorAll("button[type='submit']");
+      const containers = {
+        "analyze_with_ai": "ai-analysis-text",
+        "analyze_x3": "x3-analysis-text",
+        "analyze_with_history": "historical-analysis-text",
+        "news_overview": "news-analysis-text",
+        "deep_tech_analyst": "deep-tech-analysis-text"
+      };
+      const buttonLabels = {
+        "analyze_with_ai": "Анализ",
+        "analyze_x3": "Анализ x3",
+        "analyze_with_history": "Анализ х50 (история)",
+        "news_overview": "Новостной обозреватель",
+        "deep_tech_analyst": "Технический аналитик"
+      };
+
+      buttons.forEach(button => {
+        button.addEventListener("click", async function (e) {
+          e.preventDefault();
+          const buttonName = button.name;
+          const textContainer = document.getElementById(containers[buttonName]);
+          const csrfToken = form.querySelector('[name="csrfmiddlewaretoken"]').value;
+
+          button.disabled = true;
+          button.textContent = "Анализ выполняется...";
+
+          try {
+            const response = await fetch(window.location.pathname + window.location.search, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/x-www-form-urlencoded",
+                "X-CSRFToken": csrfToken
+              },
+              body: new URLSearchParams({
+                "csrfmiddlewaretoken": csrfToken,
+                "symbol": "{{ selected_pair }}",
+                [buttonName]: "1"
+              })
+            });
+
+            if (!response.ok) throw new Error("Ошибка запроса: " + response.statusText);
+            const html = await response.text();
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, "text/html");
+            const newContent = doc.querySelector(`#${containers[buttonName]}`).innerHTML;
+            textContainer.innerHTML = newContent;
+
+            // Подсветка ключевых слов
+            textContainer.innerHTML = textContainer.innerHTML
+              .replace(/Тейк-профит/gi, '<span style="color: yellow; font-weight: bold;">Тейк-профит</span>')
+              .replace(/Стоп-лосс/gi, '<span style="color: red; font-weight: bold;">Стоп-лосс</span>');
+
+            // Делаем числа кликабельными для копирования
+            const regex = /(\d+\.\d+|\d+)/g;
+            textContainer.innerHTML = textContainer.innerHTML.replace(regex, match => `<span class="copyable" data-value="${match}">${match}</span>`);
+            document.querySelectorAll(".copyable").forEach(element => {
+              element.addEventListener("click", function () {
+                let valueToCopy = this.getAttribute("data-value") || this.textContent;
+                valueToCopy = valueToCopy.trim().replace(",", ".");
+                navigator.clipboard.writeText(valueToCopy).then(() => {
+                  this.style.color = "#28a745";
+                  this.style.fontWeight = "bold";
+                  setTimeout(() => {
+                    this.style.color = "";
+                    this.style.fontWeight = "";
+                  }, 700);
+                }).catch(err => console.error("Ошибка копирования:", err));
+              });
+            });
+          } catch (error) {
+            console.error("Ошибка:", error);
+            textContainer.innerHTML = "<p>Произошла ошибка при выполнении анализа.</p>";
+          } finally {
+            button.disabled = false;
+            button.textContent = buttonLabels[buttonName];
+          }
+        });
+      });
+
+      // Калькулятор для торговых форм
+      const pipValueFromBroker = {{ tick_value|default: "0"
+    }};
+
+    function calculateProfitAndLoss(volume, price, takeProfit, stopLoss, profitField, lossField) {
+      const vol = parseFloat(volume.replace(",", "."));
+      const entryPrice = parseFloat(price.replace(",", "."));
+      const tp = parseFloat(takeProfit.replace(",", "."));
+      const sl = parseFloat(stopLoss.replace(",", "."));
+
+      if (vol && entryPrice && tp && sl) {
+        const profit = (tp - entryPrice) * vol * pipValueFromBroker;
+        const loss = (entryPrice - sl) * vol * pipValueFromBroker;
+        document.getElementById(profitField).textContent = profit.toFixed(2);
+        document.getElementById(lossField).textContent = loss.toFixed(2);
+      } else {
+        document.getElementById(profitField).textContent = "-";
+        document.getElementById(lossField).textContent = "-";
+      }
+    }
+
+    const pendingForm = document.getElementById("pendingOrderForm");
+    if (pendingForm) {
+      pendingForm.addEventListener("input", () => {
+        calculateProfitAndLoss(
+          document.getElementById("volume_pending").value,
+          document.getElementById("price_pending").value,
+          document.getElementById("take_profit_pending").value,
+          document.getElementById("stop_loss_pending").value,
+          "profit_pending",
+          "loss_pending"
+        );
+      });
+    }
+
+    const marketForm = document.getElementById("marketPositionForm");
+    if (marketForm) {
+      marketForm.addEventListener("input", () => {
+        calculateProfitAndLoss(
+          document.getElementById("volume_market").value,
+          document.getElementById("price_pending").value,
+          document.getElementById("take_profit_market").value,
+          document.getElementById("stop_loss_market").value,
+          "profit_market",
+          "loss_market"
+        );
+      });
+    }
+  });
+  </script>
+</div>
+{% endblock %}

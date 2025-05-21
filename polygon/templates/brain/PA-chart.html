@@ -1,0 +1,674 @@
+{% extends "base.html" %}
+{% load static custom_tags custom_filters %}
+
+{% block content %}
+
+<!-- Plotly.js -->
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!-- Chart.js Financial Chart Plugin -->
+<script src="https://cdn.jsdelivr.net/npm/chartjs-chart-financial@3.3.0/dist/chartjs-chart-financial.min.js"></script>
+
+<!-- NAVBAR -->
+{% include "partials/navbar-pachart.html" %}
+
+<div class="fforex_pair d-flex align-items-center">
+    <form method="get" action="{% url 'price_action_chart' %}">
+        <!-- Form Row -->
+        <div class="row align-items-center">
+            <!-- Timeframe Selection -->
+            <div class="col-md-2 mb-3">
+                <select id="timeframe" name="timeframe" class="form-custom">
+                    <option value="all" {% if selected_timeframe == "all" %}selected{% endif %}>Все таймфреймы</option>
+                    {% for tf in timeframes %}
+                        <option value="{{ tf }}" {% if tf == selected_timeframe %}selected{% endif %}>{{ tf }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Number of Candles -->
+            <div class="col-md-2 mb-3">
+                <input type="number" id="candles" name="candles" class="form-custom"
+                       value="{{ selected_candles }}" min="1" max="500">
+            </div>
+
+            <!-- Submit Button -->
+            <div class="col-md-2 mb-3">
+                <button type="submit" class="form-custom">Go</button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<div class="row">
+  <div class="col-12" id="candlestick-container" style="height: 900px; margin-bottom: 20px;">
+    <div id="candlestick-chart" style="width: 100%; height: 100%;"></div>
+
+
+
+
+<!-- Табы анализа -->
+
+    <h3>Анализ Инструмента</h3>
+
+    <ul class="nav nav-tabs" id="analysisTab" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="fibonacci-tab" data-bs-toggle="tab"
+                    data-bs-target="#fibonacci"
+                    type="button" role="tab" aria-controls="fibonacci" aria-selected="true">
+                Fibonacci
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="nearest-levels-tab" data-bs-toggle="tab"
+                    data-bs-target="#nearest-levels"
+                    type="button" role="tab" aria-controls="nearest-levels" aria-selected="false">
+                Nearest Levels
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="indicators-tab" data-bs-toggle="tab"
+                    data-bs-target="#indicators"
+                    type="button" role="tab" aria-controls="indicators" aria-selected="false">
+                Indicators
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="pivot-points-tab" data-bs-toggle="tab"
+                    data-bs-target="#pivot-points"
+                    type="button" role="tab" aria-controls="pivot-points" aria-selected="false">
+                Pivot Points
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="regression-tab" data-bs-toggle="tab"
+                    data-bs-target="#regression"
+                    type="button" role="tab" aria-controls="regression" aria-selected="false">
+                Regression
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="instrument-structure-tab" data-bs-toggle="tab"
+                    data-bs-target="#instrument-structure"
+                    type="button" role="tab" aria-controls="instrument-structure" aria-selected="false">
+                Instrument Structure
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="strategies-tab" data-bs-toggle="tab"
+                    data-bs-target="#strategies"
+                    type="button" role="tab" aria-controls="strategies" aria-selected="false">
+                Стратегии
+            </button>
+        </li>
+    </ul>
+
+    <div class="tab-content mt-3" id="analysisTabContent">
+        <!-- Fibonacci Analysis -->
+        <div class="tab-pane fade show active" id="fibonacci" role="tabpanel" aria-labelledby="fibonacci-tab">
+            <h4>Fibonacci Analysis</h4>
+            <div class="table-responsive">
+                <table id="fib-table" class="table-bordered table-sm analysis-table">
+                    <thead>
+                    <tr><th>Параметр</th><th>Значение</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for key, value in fib_analysis.items %}
+                        <tr class="fib-row"
+                            data-fib-key="{{ key }}"
+                            data-fib-value="{{ value|escapejs }}">
+                            <td>{{ key }}</td>
+                            <td>{{ value }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Nearest Levels -->
+        <div class="tab-pane fade" id="nearest-levels" role="tabpanel" aria-labelledby="nearest-levels-tab">
+            <h4>Nearest Levels</h4>
+            <div class="table-responsive">
+                <table id="nearest-levels-table" class="table-bordered table-sm analysis-table">
+                    <thead>
+                    <tr><th>Тип</th><th>Значение</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for lvlkey, lvlval in nearest_levels.items %}
+                        <tr class="nearest-row"
+                            data-lvl-key="{{ lvlkey }}"
+                            data-lvl-value="{{ lvlval|escapejs }}">
+                            <td>{{ lvlkey }}</td>
+                            <td>{{ lvlval }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Indicators -->
+        <div class="tab-pane fade" id="indicators" role="tabpanel" aria-labelledby="indicators-tab">
+            <h4>Indicators</h4>
+
+            <div class="analysis-table">
+                <table id="indicators-table" class="analysis-table">
+                    <thead>
+                    <tr><th>Индикатор</th><th>Значения</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for key, value in indicators.items %}
+                        <tr>
+                            <td class="indicator-clickable"
+                                data-indicator="{{ key }}">
+                                {{ key }}
+                            </td>
+                            <td>
+                                {% if value is dict %}
+                                    <ul>
+                                        {% for sub_key, sub_val in value.items %}
+                                        <li><strong>{{ sub_key }}:</strong> {{ sub_val }}</li>
+                                        {% endfor %}
+                                    </ul>
+                                {% elif value is iterable and value is not string %}
+                                    <ul>
+                                        {% for item in value %}
+                                        <li>{{ item }}</li>
+                                        {% endfor %}
+                                    </ul>
+                                {% else %}
+                                    {{ value }}
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Pivot Points -->
+        <div class="tab-pane fade" id="pivot-points" role="tabpanel" aria-labelledby="pivot-points-tab">
+            <h4>Pivot Points</h4>
+            <div class="table-responsive">
+                <table id="pivot-table" class="table-bordered table-sm analysis-table">
+                    <thead>
+                    <tr><th>Период</th><th>Pivot</th><th>Уровни Сопротивления</th><th>Уровни Поддержки</th></tr>
+                    </thead>
+                    <tbody>
+                    {% for pivot in pivot_points %}
+                        <tr class="pivot-row"
+                            data-pivot="{{ pivot.pivot }}"
+                            data-resistance="{{ pivot.pp_resistance|escapejs }}"
+                            data-support="{{ pivot.pp_support|escapejs }}">
+                            <td>{{ pivot.period }}</td>
+                            <td>{{ pivot.pivot }}</td>
+                            <td>
+                                <ul>
+                                    {% for res in pivot.pp_resistance %}
+                                    <li>{{ res }}</li>
+                                    {% endfor %}
+                                </ul>
+                            </td>
+                            <td>
+                                <ul>
+                                    {% for sup in pivot.pp_support %}
+                                    <li>{{ sup }}</li>
+                                    {% endfor %}
+                                </ul>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Regression -->
+        <div class="tab-pane fade" id="regression" role="tabpanel" aria-labelledby="regression-tab">
+            <h4>Regression</h4>
+            <div class="table-responsive">
+                <table id="regression-table" class="table-bordered table-sm analysis-table">
+                    <thead>
+                    <tr><th>Уровень</th><th>Значение</th></tr>
+                    </thead>
+                    <tbody>
+                        {% for level, value in regression_channel.items %}
+                        <tr class="regression-row"
+                            data-reg-name="{{ level }}"
+                            data-reg-value="{{ value|escapejs }}">
+                            <td>{{ level }}</td>
+                            <td>{{ value }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Instrument Structure -->
+        <div class="tab-pane fade" id="instrument-structure" role="tabpanel" aria-labelledby="instrument-structure-tab">
+            <h4>Instrument Structure</h4>
+            <div class="table-responsive">
+                <table class="table-bordered table-sm analysis-table" id="instrument-structure-table">
+                    <thead>
+                    <tr><th>Параметр</th><th>Значение</th></tr>
+                    </thead>
+                    <tbody>
+                        <tr data-inst-key="current_price"
+                            data-inst-value="{{ instrument_structure.current_price|escapejs }}">
+                            <td>Current Price</td>
+                            <td>{{ instrument_structure.current_price }}</td>
+                        </tr>
+                        <tr data-inst-key="trend"
+                            data-inst-value="{{ instrument_structure.trend|escapejs }}">
+                            <td>Trend</td>
+                            <td>{{ instrument_structure.trend }}</td>
+                        </tr>
+                        <tr data-inst-key="support"
+                            data-inst-value="{{ instrument_structure.support|escapejs }}">
+                            <td>Support</td>
+                            <td>{{ instrument_structure.support }}</td>
+                        </tr>
+                        <tr data-inst-key="resistance"
+                            data-inst-value="{{ instrument_structure.resistance|escapejs }}">
+                            <td>Resistance</td>
+                            <td>{{ instrument_structure.resistance }}</td>
+                        </tr>
+                        <tr>
+                            <td>Fibonacci Levels</td>
+                            <td>
+                                {% if instrument_structure.fib_levels %}
+                                    <ul>
+                                        {% for level, val in instrument_structure.fib_levels.items %}
+                                        <li>{{ level }}: {{ val|floatformat:2 }}</li>
+                                        {% endfor %}
+                                    </ul>
+                                {% else %}
+                                    <p>No Fibonacci levels available.</p>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        <tr data-inst-key="liquidity_zones"
+                            data-inst-value="{{ instrument_structure.liquidity_zones|escapejs }}">
+                            <td>Liquidity Zones</td>
+                            <td>{{ instrument_structure.liquidity_zones }}</td>
+                        </tr>
+                        <tr data-inst-key="atr"
+                            data-inst-value="{{ instrument_structure.atr|escapejs }}">
+                            <td>ATR</td>
+                            <td>{{ instrument_structure.atr }}</td>
+                        </tr>
+                        <tr>
+                            <td>OHLC</td>
+                            <td>
+                                <ul>
+                                    {% for bar in instrument_structure.ohlc|slice:"0:3" %}
+                                    <li>{{ bar }}</li>
+                                    {% endfor %}
+                                    <p class="text-muted">...</p>
+                                </ul>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Strategies -->
+        <div class="tab-pane fade" id="strategies" role="tabpanel" aria-labelledby="strategies-tab">
+            <h4>ICT Strategy</h4>
+            <div class="bg-dark p-3 mb-4 rounded">
+                <pre>{{ ict_strategy|safe }}</pre>
+            </div>
+            <h4>SMC Strategy</h4>
+            <div class="bg-dark p-3 mb-4 rounded">
+                <pre>{{ smc_strategy|safe }}</pre>
+            </div>
+            <h4>SNR Strategy</h4>
+            <div class="bg-dark p-3 mb-4 rounded">
+                <pre>{{ snr_strategy|safe }}</pre>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Hidden container for checkboxes (if needed) -->
+<div id="indicators-checkboxes" style="display: none;"></div>
+
+<!-- jQuery (для DataTables) -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<!-- DataTables JS -->
+<script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/plug-ins/1.13.4/i18n/Russian.json"></script>
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- Chart Script -->
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    // 1) Парсим данные из контекста Django
+    const indicatorsData = JSON.parse('{{ indicators_json|escapejs }}');
+    const ohlcData = JSON.parse('{{ ohlc_json|escapejs }}') || [];
+
+    // 2) Извлекаем данные OHLC для Plotly
+    const times = ohlcData.map(bar => bar.time);
+    const opens = ohlcData.map(bar => bar.open);
+    const highs = ohlcData.map(bar => bar.high);
+    const lows = ohlcData.map(bar => bar.low);
+    const closes = ohlcData.map(bar => bar.close);
+
+    // Свечной трейс (Price)
+    const candlestickTrace = {
+      x: times,
+      open: opens,
+      high: highs,
+      low: lows,
+      close: closes,
+      type: 'candlestick',
+      name: 'Price',
+      increasing: { line: { color: 'darkgreen' } },
+      decreasing: { line: { color: 'grey' } },
+      yaxis: 'y1'
+    };
+
+    // Начальный массив трейсов
+    const initialTraces = [candlestickTrace];
+
+    // 3) Настройки Layout
+    const layout = {
+      paper_bgcolor: '#161616',
+      plot_bgcolor: '#161616',
+      xaxis: {
+        title: { text: 'Time', font: { color: '#333' } },
+        color: '#333',
+        gridcolor: 'rgba(0,0,0,0.1)',
+        type: 'category',
+        rangebreaks: [
+          { pattern: 'day of week', bounds: [6, 1] }
+        ]
+      },
+      yaxis: {
+        title: { text: 'Price', font: { color: '#333' } },
+        domain: [0.3, 1],
+        color: '#333',
+        gridcolor: 'rgba(0,0,0,0.1)'
+      },
+      yaxis2: {
+        title: 'Oscillator',
+        domain: [0, 0.25],
+        side: 'right',
+        showgrid: true,
+        gridcolor: 'rgba(0,0,0,0.1)',
+        zeroline: false
+      },
+      margin: { l: 50, r: 50, t: 25, b: 40 },
+      height: 800
+    };
+
+    // 4) Рендерим график
+    Plotly.newPlot('candlestick-chart', initialTraces, layout);
+
+    // ---------- Общие функции добавления индикаторов/линий ----------
+
+    // Добавляем индикатор (например, RSI, MACD) на график
+    function addIndicatorToChart(indicatorName) {
+      const indicatorVal = indicatorsData[indicatorName];
+      if (!indicatorVal) return;
+
+      if (typeof indicatorVal === 'object' && !Array.isArray(indicatorVal)) {
+        // Многокомпонентный (напр. MACD: { macd: [...], signal: [...] })
+        for (let subKey in indicatorVal) {
+          if (Object.hasOwn(indicatorVal, subKey)) {
+            createAndAddTrace(`${indicatorName} (${subKey})`, indicatorVal[subKey]);
+          }
+        }
+      } else {
+        // Обычный массив
+        createAndAddTrace(indicatorName, indicatorVal);
+      }
+    }
+
+    // Создаём и добавляем линию (scatter) на график
+    function createAndAddTrace(name, yData) {
+      const axis = isOscillator(name) ? 'y2' : 'y1';
+      const trace = {
+        x: times,
+        y: yData,
+        type: 'scatter',
+        mode: 'lines',
+        name: name,
+        line: { color: getRandomColor() },
+        yaxis: axis
+      };
+      Plotly.addTraces('candlestick-chart', [trace]);
+    }
+
+    // Определяем, удалить ли индикатор
+    function removeIndicatorFromChart(indicatorName) {
+      const chart = document.getElementById('candlestick-chart');
+      if (!chart || !chart.data) return;
+
+      let indicesToRemove = [];
+      chart.data.forEach((trace, idx) => {
+        if (trace.name && trace.name.startsWith(indicatorName)) {
+          indicesToRemove.push(idx);
+        }
+      });
+      indicesToRemove.reverse().forEach(i => {
+        Plotly.deleteTraces('candlestick-chart', i);
+      });
+    }
+
+    // Проверяем, считаем ли этот индикатор «осциллятором»
+    function isOscillator(name) {
+      const oscKeywords = ["RSI", "MACD", "Stochastic", "CCI", "MFI", "signal", "%K", "%D"];
+      return oscKeywords.some(kw => name.toUpperCase().includes(kw.toUpperCase()));
+    }
+
+    // Случайный цвет для линий
+    function getRandomColor() {
+      return `#${Math.floor(Math.random() * 16777215).toString(16)}`;
+    }
+
+    // Добавляем горизонтальную линию (Fib, уровень сопротивления/поддержки и т.п.)
+    function addHorizontalLine(label, level) {
+      const chart = document.getElementById('candlestick-chart');
+      if (!chart || !chart.layout) return;
+
+      // Копируем shapes
+      const currentShapes = chart.layout.shapes ? chart.layout.shapes.slice() : [];
+
+      const newShape = {
+        type: 'line',
+        xref: 'paper',
+        x0: 0,
+        x1: 1,
+        yref: 'y1',
+        y0: level,
+        y1: level,
+        line: {
+          color: getRandomColor(),
+          width: 2,
+          dash: 'dash'
+        }
+      };
+      currentShapes.push(newShape);
+
+      // Аннотация
+      const newAnnotation = {
+        xref: 'paper',
+        x: 1.01,
+        xanchor: 'left',
+        y: level,
+        yanchor: 'middle',
+        text: label,
+        showarrow: false,
+        font: { color: '#fff' }
+      };
+      const currentAnnotations = chart.layout.annotations ? chart.layout.annotations.slice() : [];
+      currentAnnotations.push(newAnnotation);
+
+      // Обновляем layout
+      Plotly.relayout('candlestick-chart', {
+        shapes: currentShapes,
+        annotations: currentAnnotations
+      });
+    }
+
+    // Универсальная функция парсинга, если в data-атрибуте может быть
+    // или одно число, или массив, или объект
+    function parseValue(str) {
+      // Сначала заменим HTML-энкодинг
+      let cleanStr = str.replace(/&#x27;/g, '"');
+      // Пытаемся JSON.parse
+      try {
+        return JSON.parse(cleanStr);
+      } catch (e) {
+        // Если не JSON, может быть просто строка-число
+        let num = parseFloat(cleanStr);
+        return isNaN(num) ? cleanStr : num;
+      }
+    }
+
+    // --- 5) Обработка кликов в разных таблицах ---
+
+    // Indicators (уже есть)
+    document.getElementById("indicators-table").addEventListener("click", function (e) {
+      const td = e.target.closest("td.indicator-clickable");
+      if (!td) return;
+      const indName = td.dataset.indicator;
+      addIndicatorToChart(indName);
+    });
+
+    // FIBONACCI
+    const fibTable = document.getElementById("fib-table");
+    fibTable.addEventListener("click", function (e) {
+      const row = e.target.closest("tr.fib-row");
+      if (!row) return;
+
+      const fibKey = row.dataset.fibKey;
+      // fibValue может быть числом, массивом, словарём
+      const fibVal = parseValue(row.dataset.fibValue);
+
+      // Если fibVal — число, сразу рисуем 1 линию
+      if (typeof fibVal === 'number') {
+        addHorizontalLine(fibKey, fibVal);
+      }
+      // Если массив — проходим по каждому элементу
+      else if (Array.isArray(fibVal)) {
+        fibVal.forEach((val, idx) => {
+          if (typeof val === 'number') {
+            addHorizontalLine(`${fibKey}[${idx}]`, val);
+          }
+        });
+      }
+      // Если объект (словарь) — возможно {'Pivot': 123.45, 'Resistance': [123.5, 124], ...}
+      else if (typeof fibVal === 'object' && fibVal !== null) {
+        Object.entries(fibVal).forEach(([subKey, subVal]) => {
+          if (typeof subVal === 'number') {
+            addHorizontalLine(`${fibKey}.${subKey}`, subVal);
+          } else if (Array.isArray(subVal)) {
+            subVal.forEach((v, i) => {
+              if (typeof v === 'number') {
+                addHorizontalLine(`${fibKey}.${subKey}[${i}]`, v);
+              }
+            });
+          }
+          // Если Timestamp / строка — пропускаем, либо делаем что-то иное
+        });
+      }
+    });
+
+    // NEAREST LEVELS
+    const nearestTable = document.getElementById("nearest-levels-table");
+    nearestTable.addEventListener("click", function (e) {
+      // Считаем, что любая строка - nearest-row
+      // если хочешь, можно повесить класс "nearest-row"
+      const row = e.target.closest("tr.nearest-row");
+      if (!row) return;
+
+      const lvlKey = row.dataset.lvlKey;
+      const lvlVal = parseValue(row.dataset.lvlValue);
+      // если lvlVal это число — добавим линию
+      if (typeof lvlVal === 'number') {
+        addHorizontalLine(lvlKey, lvlVal);
+      }
+    });
+
+    // PIVOT POINTS
+    const pivotTable = document.getElementById("pivot-table");
+    pivotTable.addEventListener("click", function (e) {
+      const row = e.target.closest("tr.pivot-row");
+      if (!row) return;
+      // data-pivot, data-resistance, data-support
+      const pivotVal = parseFloat(row.dataset.pivot);
+      const resistArr = parseValue(row.dataset.resistance); // массив
+      const suppArr = parseValue(row.dataset.support);      // массив
+
+      if (!isNaN(pivotVal)) addHorizontalLine("Pivot", pivotVal);
+
+      if (Array.isArray(resistArr)) {
+        resistArr.forEach((resVal, i) => {
+          if (typeof resVal === 'number') {
+            addHorizontalLine(`R${i+1}`, resVal);
+          }
+        });
+      }
+      if (Array.isArray(suppArr)) {
+        suppArr.forEach((supVal, i) => {
+          if (typeof supVal === 'number') {
+            addHorizontalLine(`S${i+1}`, supVal);
+          }
+        });
+      }
+    });
+
+    // REGRESSION
+    const regTable = document.getElementById("regression-table");
+    regTable.addEventListener("click", function (e) {
+      const row = e.target.closest("tr.regression-row");
+      if (!row) return;
+      const regName = row.dataset.regName;
+      const regVal = parseValue(row.dataset.regValue);
+
+      // Если это число — добавляем линию
+      if (typeof regVal === 'number') {
+        addHorizontalLine(regName, regVal);
+      }
+    });
+
+    // INSTRUMENT STRUCTURE
+    const instTable = document.getElementById("instrument-structure-table");
+    instTable.addEventListener("click", function (e) {
+      const row = e.target.closest("tr[data-inst-key]");
+      if (!row) return;
+
+      const keyName = row.dataset.instKey;
+      const val = parseValue(row.dataset.instValue);
+      if (typeof val === 'number') {
+        addHorizontalLine(keyName, val);
+      }
+      // Или, если это массив, словарь — аналогично
+    });
+
+    // --- Инициализация DataTables ---
+    $(document).ready(function () {
+      $('table').DataTable({
+        paging: true,
+        searching: true,
+        ordering: true,
+        info: true,
+        responsive: true,
+        language: {
+          url: "//cdn.datatables.net/plug-ins/1.13.4/i18n/Russian.json"
+        }
+      });
+    });
+  });
+</script>
+
+{% endblock %}

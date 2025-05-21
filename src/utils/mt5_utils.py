@@ -1,4 +1,4 @@
-# TradeSpace_v2/src/utils/mt5_utils.py
+# TradeSpace_v5/src/utils/mt5_utils.py
 import MetaTrader5 as mt5
 import pandas as pd
 import logging
@@ -8,37 +8,132 @@ logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
 )
 
+import MetaTrader5 as mt5
+
+
+def connect_mt5(account):
+    if not mt5.initialize():
+        raise ConnectionError("MetaTrader 5: Не удалось инициализировать библиотеку")
+    if not mt5.login(account.login, account.password, server=account.server):
+        raise ConnectionError(f"MetaTrader 5: Ошибка авторизации для {account.name}")
+    return True
+
 
 # Получение данных OHLC для символа
 def get_rates_dataframe(symbol, timeframe, period=500):
+    """
+    Получение данных OHLC из MetaTrader 5 в виде DataFrame.
+
+    :param symbol: Символ финансового инструмента (например, EURUSD).
+    :param timeframe: Таймфрейм (например, mt5.TIMEFRAME_H1).
+    :param period: Количество баров для загрузки (по умолчанию 500).
+    :return: DataFrame с данными OHLC или None в случае ошибки.
+    """
     try:
-        # Убедимся, что символ активирован
+        # Проверяем, активирован ли символ
         if not mt5.symbol_select(symbol, True):
             raise Exception(f"Символ {symbol} не удалось активировать")
 
-        # Попробуем получить данные
-
+        # Получение данных OHLC
         rates = mt5.copy_rates_from_pos(symbol, timeframe, 0, period)
         if rates is None or len(rates) == 0:
             raise Exception(f"Нет данных для символа {symbol} и таймфрейма {timeframe}")
 
-        # Преобразуем данные в DataFrame
+        # Преобразование в DataFrame
         df = pd.DataFrame(rates)
         if df.empty:
             raise Exception(f"DataFrame пуст для {symbol} и таймфрейма {timeframe}")
 
-        # Преобразуем время в читаемый формат
+        # Проверяем наличие необходимых столбцов
+        required_columns = {"time", "open", "high", "low", "close"}
+        if not required_columns.issubset(df.columns):
+            raise Exception(
+                f"Отсутствуют необходимые столбцы в данных для {symbol}: "
+                f"{required_columns - set(df.columns)}"
+            )
+
+        # Преобразуем временные метки в читаемый формат
         df["time"] = pd.to_datetime(df["time"], unit="s")
 
-        # Логируем первые несколько строк данных
-        # logging.info(f"Получены данные OHLC для {symbol} {timeframe}: {df.head()}")
+        # Логируем диапазон времени и размер данных
+        logging.info(
+            f"Данные для {symbol} {timeframe}: {len(df)} баров "
+            f"с {df['time'].min()} по {df['time'].max()}"
+        )
 
         return df
     except Exception as e:
+        # Логируем ошибку с деталями
         logging.error(
-            f"Ошибка при получении данных для {symbol} и таймфрейма {timeframe}: {e}"
+            f"Ошибка при получении данных для {symbol} {timeframe}: {e}",
+            exc_info=True,
         )
         return None
+
+
+# def get_rates_dataframe(symbol, timeframe, period=500):
+#     """
+#     Получение данных OHLC из MetaTrader 5 в виде DataFrame.
+
+#     :param symbol: Символ финансового инструмента (например, EURUSD).
+#     :param timeframe: Таймфрейм (например, mt5.TIMEFRAME_H1).
+#     :param period: Количество баров для загрузки (по умолчанию 500).
+#     :return: DataFrame с данными OHLC или None в случае ошибки.
+#     """
+#     try:
+#         # Проверяем, активирован ли символ
+#         if not mt5.symbol_select(symbol, True):
+#             available_symbols = [s.name for s in mt5.symbols_get()]
+#             logging.error(
+#                 f"Символ {symbol} не удалось активировать. Доступные символы: {available_symbols}"
+#             )
+#             raise Exception(f"Символ {symbol} не удалось активировать")
+
+#         # Проверяем формат таймфрейма
+#         if not isinstance(timeframe, int):
+#             logging.error(f"Неверный формат таймфрейма: {timeframe}")
+#             raise ValueError(
+#                 "Таймфрейм должен быть целым числом, соответствующим mt5.TIMEFRAME_*"
+#             )
+
+#         # Проверяем, является ли период целым числом
+#         if not isinstance(period, int) or period <= 0:
+#             logging.error(f"Неверное значение периода: {period}")
+#             raise ValueError("Период должен быть положительным целым числом")
+
+#         # Получение данных OHLC
+#         rates = mt5.copy_rates_from_pos(symbol, timeframe, 0, period)
+#         if rates is None or len(rates) == 0:
+#             logging.error(f"Нет данных для символа {symbol} и таймфрейма {timeframe}")
+#             raise Exception(f"Нет данных для символа {symbol} и таймфрейма {timeframe}")
+
+#         # Преобразование в DataFrame
+#         df = pd.DataFrame(rates)
+#         if df.empty:
+#             logging.error(f"DataFrame пуст для {symbol} и таймфрейма {timeframe}")
+#             raise Exception(f"DataFrame пуст для {symbol} и таймфрейма {timeframe}")
+
+#         # Проверяем наличие необходимых столбцов
+#         required_columns = {"time", "open", "high", "low", "close"}
+#         if not required_columns.issubset(df.columns):
+#             logging.error(
+#                 f"Отсутствуют необходимые столбцы: {required_columns - set(df.columns)}"
+#             )
+#             raise Exception(f"Отсутствуют необходимые столбцы в данных для {symbol}")
+
+#         # Преобразуем временные метки в читаемый формат
+#         df["time"] = pd.to_datetime(df["time"], unit="s")
+#         logging.info(
+#             f"Данные для {symbol} {timeframe}: {len(df)} баров с {df['time'].min()} по {df['time'].max()}"
+#         )
+
+#         return df
+#     except Exception as e:
+#         # Логируем ошибку с деталями
+#         logging.error(
+#             f"Ошибка при получении данных для {symbol} {timeframe}: {e}", exc_info=True
+#         )
+#         return None
 
 
 # Инициализация MetaTrader 5
@@ -203,6 +298,28 @@ def get_ohlc(symbol, timeframe, number_of_candles):
         raise Exception(f"Не удалось получить данные для символа {symbol}")
     rates_frame = pd.DataFrame(rates)
     rates_frame["time"] = pd.to_datetime(rates_frame["time"], unit="s")
+    rates_frame["time"] = rates_frame["time"].dt.strftime("%Y-%m-%dT%H:%M:%S")
+    return rates_frame[["time", "open", "high", "low", "close"]]
+
+
+def get_ohlc_extended(symbol, timeframe, number_of_candles, round_digits=5):
+    """
+    Расширенная версия функции получения данных OHLC.
+    """
+    if not mt5.symbol_select(symbol, True):
+        raise Exception(f"Не удалось выбрать символ {symbol}")
+    rates = mt5.copy_rates_from_pos(symbol, timeframe, 0, number_of_candles)
+    if rates is None:
+        raise Exception(f"Не удалось получить данные для символа {symbol}")
+    rates_frame = pd.DataFrame(rates)
+    rates_frame["time"] = pd.to_datetime(rates_frame["time"], unit="s")
+
+    # Добавляем округление
+    rates_frame["open"] = rates_frame["open"].round(round_digits)
+    rates_frame["high"] = rates_frame["high"].round(round_digits)
+    rates_frame["low"] = rates_frame["low"].round(round_digits)
+    rates_frame["close"] = rates_frame["close"].round(round_digits)
+
     return rates_frame[["time", "open", "high", "low", "close"]]
 
 
@@ -347,63 +464,6 @@ def place_pending_order(
     except Exception as e:
         logging.error(f"Ошибка при установке отложенного ордера для {symbol}: {e}")
         return False
-
-    finally:
-        shutdown_mt5()
-
-
-def close_position_by_ticket(ticket):
-    """
-    Закрытие позиции по тикету с улучшенным логированием.
-    """
-    try:
-        initialize_mt5()
-
-        position = mt5.positions_get(ticket=ticket)
-        if not position:
-            raise Exception(f"Позиция с тикетом {ticket} не найдена.")
-
-        symbol = position[0].symbol
-        volume = position[0].volume
-
-        # Определяем тип ордера: закрытие buy через sell и наоборот
-        order_type = (
-            mt5.ORDER_TYPE_SELL
-            if position[0].type == mt5.ORDER_TYPE_BUY
-            else mt5.ORDER_TYPE_BUY
-        )
-
-        tick = mt5.symbol_info_tick(symbol)
-        if tick is None:
-            raise Exception(f"Не удалось получить тик для символа {symbol}")
-
-        price = tick.bid if order_type == mt5.ORDER_TYPE_SELL else tick.ask
-        if price is None:
-            raise Exception(f"Не удалось получить цену для символа {symbol}")
-
-        request = {
-            "action": mt5.TRADE_ACTION_DEAL,
-            "symbol": symbol,
-            "volume": volume,
-            "type": order_type,
-            "price": price,
-            "deviation": 20,
-            "magic": 123456,
-            "comment": "Automated Close",
-        }
-
-        close_order = mt5.order_send(request)
-        if close_order.retcode != mt5.TRADE_RETCODE_DONE:
-            raise Exception(
-                f"Ошибка при закрытии позиции {ticket}: {close_order.retcode}"
-            )
-
-        logging.info(f"Позиция {ticket} успешно закрыта.")
-        return close_order
-
-    except Exception as e:
-        logging.error(f"Ошибка при закрытии позиции {ticket}: {e}")
-        return None
 
     finally:
         shutdown_mt5()

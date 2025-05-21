@@ -1,0 +1,149 @@
+{% extends "base.html" %} {% block content %} {% load custom_filters %}
+<form method="get" action="{% url 'statistics' %}" class="mb-4">
+  <label for="start_date">Дата начала:</label>
+  <input
+    type="date"
+    id="start_date"
+    name="start_date"
+    value="{{ request.GET.start_date }}"
+  />
+
+  <label for="end_date">Дата окончания:</label>
+  <input
+    type="date"
+    id="end_date"
+    name="end_date"
+    value="{{ request.GET.end_date }}"
+  />
+
+  <button type="submit" class="btn btn-primary">Фильтровать</button>
+</form>
+<canvas id="dayOfWeekChart" width="400" height="200"></canvas>
+
+<h2 class="mt-5">Прибыль/убыток по дням недели</h2>
+<table class="table table-bordered">
+  <thead>
+    <tr>
+      <th>День недели</th>
+      <th>Прибыль/убыток</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for day, profit in days_of_week.items %}
+    <tr>
+      <td>{{ day }}</td>
+      <td>${{ profit }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<div class="container mt-5">
+  <h1 class="text-center">История прибыли/убытка</h1>
+
+  {% if error %}
+  <div class="alert alert-danger">{{ error }}</div>
+  {% else %}
+  <div class="row">
+    <div class="col-12">
+      <canvas id="profitChart" width="400" height="200"></canvas>
+    </div>
+  </div>
+
+  <div class="row mt-5">
+    <div class="col-12">
+      <table class="table table-bordered">
+        <thead>
+          <tr>
+            <th>Дата</th>
+            <th>Инструмент</th>
+            <th>Прибыль/Убыток</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for date, symbol, profit in combined_data %}
+          <tr>
+            <td>{{ date }}</td>
+            <td>{{ symbol }}</td>
+            <td>${{ profit }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  const profitData = {{ profits|safe }};
+  const profitLabels = {{ dates|safe }};
+
+  // Фильтрация данных (удаляем ровно 0)
+  const filteredData = [];
+  const filteredLabels = [];
+  profitData.forEach((value, index) => {
+    if (value !== 0) {  // Пропускаем ровно нулевые значения
+      filteredData.push(value);
+      filteredLabels.push(profitLabels[index]);
+    }
+  });
+
+  const profitColors = filteredData.map(value => value > 0 ? 'rgba(75, 192, 192, 1)' : 'rgba(255, 99, 132, 1)');
+
+  const ctx = document.getElementById('profitChart').getContext('2d');
+  const profitChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: filteredLabels,  // Используем только отфильтрованные метки
+      datasets: [{
+        label: 'Прибыль/Убыток',
+        data: filteredData,  // Используем только отфильтрованные значения
+        borderColor: profitColors,
+        borderWidth: 2,
+        pointBackgroundColor: profitColors,
+        fill: false
+      }]
+    },
+    options: {
+      responsive: true,
+      scales: {
+        y: {
+          beginAtZero: true
+        }
+      }
+    }
+  });
+</script>
+
+<script>
+  const dataValues = {{ data|safe }};
+  const colors = dataValues.map(value => value > 0 ? 'rgba(75, 192, 192, 0.5)' : 'rgba(255, 99, 132, 0.5)');
+  const borderColors = dataValues.map(value => value > 0 ? 'rgba(75, 192, 192, 1)' : 'rgba(255, 99, 132, 1)');
+
+  const dayOfWeekCtx = document.getElementById('dayOfWeekChart').getContext('2d');
+  const dayOfWeekChart = new Chart(dayOfWeekCtx, {
+    type: 'bar',
+    data: {
+      labels: {{ labels|safe }},  // Дни недели
+      datasets: [{
+        label: 'Прибыль/убыток по дням недели',
+        data: dataValues,  // Значения прибыли/убытка
+        backgroundColor: colors,
+        borderColor: borderColors,
+        borderWidth: 1
+      }]
+    },
+    options: {
+      responsive: true,
+      scales: {
+        y: {
+          beginAtZero: true
+        }
+      }
+    }
+  });
+</script>
+
+{% endblock %}

@@ -1,8 +1,9 @@
+/* TradeSpace_v3/static/css/styles.css */
 /* Оптимизированные общие стили */
 /* Основные переменные для тем */
 :root {
     --background-color: #1F1F1F;
-    --text-color: #d1cbcb;
+    --text-color: #bb785d;
     --card-bg: #1F1F1F;
     --card-shadow: rgba(0, 0, 0, 0.1);
     --border-color: #1F1F1F;
@@ -38,6 +39,7 @@ body {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
+
 }
 
 .wrapper {
@@ -92,7 +94,7 @@ body {
     padding: 15px 20px;
     text-decoration: none;
     font-weight: 500;
-    font-size: 15px;
+    font-size: 12px;
     line-height: 25px;
     letter-spacing: 0.03em;
     transition: color 0.3s ease, padding 0.3s ease;
@@ -277,6 +279,7 @@ body {
 label {
     display: inline-block;
     margin-bottom: .0rem;
+    font-size: 0.85rem;
 }
 
 .table-container {
@@ -312,6 +315,7 @@ label {
         padding: 10px;
         text-align: center;
         color: #dbdbdb;
+        font-size: 0.85rem;
     }
 
     th {
@@ -370,6 +374,7 @@ label {
             border-radius: 8px;
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
             color: #a19b9b;
+            font-size: 12px;
         }
 
         .form-custom label {
@@ -548,7 +553,7 @@ label {
         }
 
         .section-title {
-            font-size: 1.5rem;
+            font-size: 1rem;
             font-weight: bold;
             color: #bb785d;
             margin-bottom: 15px;
@@ -583,8 +588,9 @@ label {
                 td {
                     padding: 5px;
                     border: 1px solid #171717;
-                    text-align: center;
-                    color: #a19b9b;
+                    /* text-align: center; */
+                    color: #bb785d;
+                    font-size: 0.85rem;
                 }
 
                 th {
@@ -656,7 +662,7 @@ label {
 
         .analysis-table td {
             padding: 10px;
-            font-size: 0.95rem;
+            /* font-size: 0.95rem; */
             background-color: var(--table-bg-color);
         }
 
@@ -691,7 +697,7 @@ label {
 }
 
 .global-info h5 {
-    font-size: 1.4rem;
+    font-size: 1.25rem;
     font-weight: bold;
     color: #bb785d;
     text-align: center;
@@ -718,9 +724,10 @@ label {
     justify-content: space-around;
     align-items: center;
 
-    padding: 10px 20px;
+    /* padding: 10px 20px; */
     border-bottom: 1px solid var(--border-color);
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    font-size: 0.9rem;
 }
 
 .header-timezones .timezone {
@@ -730,17 +737,26 @@ label {
     font-size: 0.9rem;
     color: var(--header-text);
 }
-
+.h2,
+h2 {
+    font-size: 15px;
+    color: #bb785d;
+}
+.h3,
+h3 {
+    font-size: 15px;
+    color: #bb785d;
+}
 .header-timezones .timezone strong {
 
-    font-size: 1rem;
+    font-size: 12px;
     color: var(--button-bg);
 }
 
 .header-timezones .timezone span {
-    font-size: 1.8rem;
+    font-size: 1.4rem;
     /* Увеличим размер текста */
-    margin-top: 5px;
+    margin-top: 0px;
 
 
     background-clip: text;
@@ -750,7 +766,7 @@ label {
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6), 0 0 10px rgba(255, 255, 255, 0.4);
     animation: gradient-move 3s ease infinite;
     /* Добавим эффект анимации */
-    padding: 5px 10px;
+    /* padding: 5px 10px; */
     border-radius: 8px;
     transition: transform 0.2s ease-in-out;
 }
@@ -803,7 +819,7 @@ label {
 }
 
 .fancy-clock #clock-time {
-    font-family: 'Courier New', Courier, monospace;
+    /* font-family: 'Courier New', Courier, monospace; */
     font-size: 2.5rem;
     /* color: #799b8b; */
     text-shadow: 0 2px 5px rgba(0, 0, 0, 0.7), 0 0 20px rgba(255, 255, 255, 0.5);
@@ -826,7 +842,7 @@ label {
 }
 
 h5 {
-    font-size: 1.5em;
+    font-size: 1.0em;
     margin-bottom: 10px;
     color: #333;
 }
@@ -836,12 +852,13 @@ h5 {
     /* Убираем маркеры списка */
     padding: 0;
     background-color: #171717;
+    font-size: 12px;
 }
 
 #economic-news-list li {
     display: none;
     /* Скрываем все элементы по умолчанию */
-    padding: 8px 12px;
+    padding: 2px 2px;
     border-bottom: 1px solid #353535;
 }
 
@@ -1118,14 +1135,15 @@ table th {
     display: flex;
     justify-content: center;
     /* Центрируем меню */
-    gap: 15px;
+    gap: 10px;
     /* Пробел между ссылками */
-    padding: 10px 0;
+    padding: 5px 0;
     /* Отступы сверху и снизу */
-    /* background-color: #f5f5f5; */
+    background-color: #000;
     /* Фон для меню */
     /* border-bottom: 2px solid #ddd; */
     /* Линия под меню */
+    font-size: 1.35rem;
 }
 
 .content_menu a {
@@ -1141,6 +1159,7 @@ table th {
     /* Скругленные углы */
     transition: background-color 0.3s, color 0.3s;
     /* Анимация при наведении */
+    font-size: 12px;
 }
 
 .content_menu a:hover {
@@ -1177,36 +1196,74 @@ table th {
 }
 
 .rec-container {
-    font-size: 1rem;
-    /* color: #495057; */
-    line-height: 1.6;
+    font-size: 0.8rem;
+    line-height: 1.3;
+    padding: 0px;
+    background-color: #1e1e1e;
+    color: #f8f9fa;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+.rec-container h3 {
+    font-size: 1.5rem;
+    color: #9bcbfc;
+    margin-bottom: 20px;
+    text-align: center;
+    border-bottom: 2px solid #495057;
+    padding-bottom: 10px;
 }
 
 .rec-container ul {
     list-style-type: none;
     padding: 0;
+    margin: 0;
 }
 
 .rec-container ul li {
     margin-bottom: 15px;
-    padding: 10px;
+    padding: 5px;
     border-left: 4px solid #6c757d;
-    /* background-color: #e9ecef; */
+    background-color: #2a2a2a;
     border-radius: 5px;
+    transition: all 0.3s ease-in-out;
+    color: #f1f1f1;
+    display: flex;
+    align-items: center;
 }
 
 .rec-container ul li strong {
     color: #9bcbfc;
     font-weight: 600;
+    margin-right: 10px;
 }
 
 .rec-container ul li:hover {
-    background-color: #191919;
-    border-left-color: #495057;
+    background-color: #333333;
+    border-left-color: #9bcbfc;
+    transform: translateX(5px);
 }
 
 .rec-container ul li:nth-child(even) {
-    background-color: #212121;
+    background-color: #252525;
+}
+
+.rec-container ul li span {
+    font-size: 0.9rem;
+    color: #adb5bd;
+}
+
+.rec-container ul li .icon {
+    font-size: 1.2rem;
+    margin-right: 10px;
+    color: #9bcbfc;
+}
+
+.rec-container p {
+    margin-top: 20px;
+    font-size: 0.95rem;
+    color: #adb5bd;
+    text-align: center;
 }
 .pagination {
     display: flex;
@@ -1280,28 +1337,33 @@ td[data-expand]:hover .hidden-content {
 .analysis-table {
     width: 100%;
     border-collapse: collapse;
-    text-align: center;
-    font-family: Arial, sans-serif;
+    margin: 20px 0;
+    font-size: 14px;
+    text-align: left;
 }
 
 .analysis-table th,
 .analysis-table td {
-    border: 1px solid #ddd;
+    border: 1px solid #161616;
     padding: 8px;
 }
 
 .analysis-table th {
-    background-color: #f4f4f4;
-    color: #333;
-    font-weight: bold;
+    background-color: #161616;
+    color: #a89f9f;
 }
 
-.analysis-table tr:nth-child(even) {
-    background-color: #f9f9f9;
+.main-row {
+    cursor: pointer;
 }
 
-.analysis-table tr:hover {
-    background-color: #f1f1f1;
+.details-row {
+    display: none;
+    background-color: #191919;
+}
+
+.details-row.visible {
+    display: table-row;
 }
 
 .indicator-badge {
@@ -1322,23 +1384,226 @@ td[data-expand]:hover .hidden-content {
 
 .indicator-badge.yellow {
     background-color: #ffc107;
-    color: #212529;
+    /* color: #212529; */
 }
-.fib-details {
+
+.hidden {
     display: none;
-    /* По умолчанию скрываем дополнительные данные */
-    margin-top: 5px;
-    font-size: 0.9em;
-    color: #ccc;
 }
 
-[data-expand]:hover {
-    cursor: pointer;
-    background-color: #333;
-    /* Меняем цвет ячейки при наведении */
+.details-row.hidden {
+    display: none;
 }
 
-[data-expand].expanded .fib-details {
+.details-content.hidden {
+    display: none;
+}
+
+.details-content.active {
     display: block;
-    /* Показываем данные при клике */
+}
+
+
+.table-cell.bullish {
+    background-color: #004d00;
+    /* Темно-зеленый */
+    color: #fff;
+}
+
+.table-cell.bearish {
+    background-color: #4d0000;
+    /* Темно-красный */
+    color: #fff;
+}
+.table-dark {
+    background-color: #1c1c1c;
+    color: #fff;
+    border: 1px solid #333;
+}
+
+.table-dark tr:hover {
+    background-color: #333;
+}
+.btn-success i {
+    transform: rotate(0deg);
+    color: green;
+}
+
+.btn-danger i {
+    transform: rotate(45deg);
+    color: red;
+}
+
+.details-row.visible {
+    display: table-row;
+}
+.price-in-ote {
+    color: green;
+}
+
+.price-outside-ote {
+    color: red;
+}
+
+/* Общие стили для таблицы */
+.analysis-table {
+    border-collapse: separate;
+    /* Разделённые границы (чтобы можно было регулировать spacing) */
+    border-spacing: 0;
+    /* По умолчанию без внутренних отступов между ячейками */
+    width: 100%;
+    margin: 20px auto;
+    font-family: Arial, sans-serif;
+    background-color: #f9fafb;
+}
+
+/* Шапка таблицы */
+.analysis-table thead tr {
+    background-color: #2c3e50;
+    /* Тёмно-синий/серый фон шапки */
+    color: #ffffff;
+    text-align: left;
+}
+
+.analysis-table thead th {
+    padding: 12px 15px;
+}
+
+/* Обычные строки */
+.analysis-table tbody tr {
+    border-bottom: 1px solid #e1e1e1;
+    transition: background-color 0.2s ease;
+}
+
+.analysis-table tbody tr:nth-child(even) {
+    background-color: #f0f4f8;
+    /* «Зебра» – более светлый фон для чётных строк */
+}
+
+.analysis-table tbody td {
+    padding: 10px 15px;
+    vertical-align: top;
+}
+
+/* Hover-эффект при наведении */
+.analysis-table tbody tr:hover {
+    background-color: #e8eff5;
+}
+
+/* Ячейки, которые можно кликать для раскрытия */
+.expandable-cell {
+    cursor: pointer;
+    position: relative;
+}
+
+/* Скрываем блок по умолчанию */
+.expanded-content {
+    display: none;
+    margin-top: 10px;
+    /* Отступ сверху, чтобы отделить от основного содержимого ячейки */
+    padding: 10px;
+    background-color: #fff;
+    /* Белый фон для контраста */
+    border: 1px solid #e1e1e1;
+    border-radius: 4px;
+}
+
+/* Можно добавить лёгкую тень для наглядности */
+.expanded-content {
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+/* Когда убираем класс .hidden, показываем блок */
+.expanded-content.hidden {
+    display: none;
+}
+
+/* Кнопка «Показать детали» или любая другая */
+.toggle-details {
+    margin-top: 8px;
+    background-color: #34495e;
+    color: #fff;
+    padding: 5px 10px;
+    border: none;
+    cursor: pointer;
+    border-radius: 3px;
+}
+
+.toggle-details:hover {
+    background-color: #2c3e50;
+}
+
+.hidden {
+    display: none;
+}
+
+.details-row {
+    background-color: #f8f9fa;
+    font-size: 0.9em;
+    border-top: 1px solid #dee2e6;
+}
+
+.details-cell {
+    padding: 10px;
+    text-align: left;
+}
+pre {
+    display: block;
+    font-size: 87.5%;
+    color: #dfdfdf;
+}
+
+#indicators-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+#indicators-table th,
+#indicators-table td {
+
+    padding: 8px;
+    text-align: center;
+}
+
+.trend-up {
+    background-color: #c8e6c9;
+}
+
+.trend-down {
+    background-color: #ffcdd2;
+}
+
+.trend-neutral {
+    background-color: #f0f0f0;
+}
+
+.details-row {
+    background-color: #f9f9f9;
+}
+
+.pa-sidebar {
+    background-color: #1e1e1e;
+    padding: 15px;
+    height: 100vh;
+}
+
+.pa-sidebar h5 {
+    color: #ffffff;
+    margin-bottom: 10px;
+}
+
+.pa-sidebar ul {
+    list-style-type: none;
+    padding: 0;
+}
+
+.pa-sidebar ul li {
+    padding: 5px;
+    cursor: pointer;
+    color: #bbbbbb;
+    transition: color 0.3s;
+}
+
+.pa-sidebar ul li:hover {
+    color: #ffffff;
 }

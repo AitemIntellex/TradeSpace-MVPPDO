@@ -10,6 +10,9 @@ majors = [
     "AUDUSD",
     "NZDUSD",
     "GBPJPY",
+    "EURJPY",
+    "NZDUSD",
+    "EURGBP",
 ]
 metals = ["choose", "XAUUSD", "XAGUSD", "XAUEUR", "XAGEUR", "XAUAUD", "XAGAUD"]
 cryptocurrencies = [

@@ -1,0 +1,25 @@
+brain/
+  __init__.py
+  admin.py
+  api.py
+  apps.py
+  migrations/
+    0001_initial.py
+    __init__.py
+  optimized/
+    mt5_utils_optimized.py
+    optimized_indicators.py
+    optimized_market_structure.py
+    trading.py <-- пустая
+  models.py
+  services/
+    chart_data_preparer.py
+    indicator_service.py
+    ohlc_service.py
+  templates/
+    brain/
+      price_action.html
+      thought_list.html
+  tests.py
+  urls.py
+  views.py

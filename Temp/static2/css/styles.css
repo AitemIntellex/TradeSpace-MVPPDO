@@ -1,0 +1,1395 @@
+/* Оптимизированные общие стили */
+/* Основные переменные для тем */
+:root {
+    --background-color: #1F1F1F;
+    --text-color: #d1cbcb;
+    --card-bg: #1F1F1F;
+    --card-shadow: rgba(0, 0, 0, 0.1);
+    --border-color: #1F1F1F;
+    --header-bg: #041214;
+    --header-text: #3498db;
+    --hover-bg: #1f343a;
+    --button-bg: #007bff;
+    --button-text: #d8d5d5;
+    --button-hover-bg: #0056b3;
+    --table-bg-color: #191919;
+}
+
+/* Темная тема */
+[data-theme="dark"] {
+    --background-color: #1F1F1F;
+    --text-color: #a19b9b;
+    --card-bg: #041214;
+    --card-shadow: rgba(0, 0, 0, 0.5);
+    --border-color: #495057;
+    --header-bg: #212529;
+    --header-text: #ffffff;
+    --hover-bg: #30424D;
+    --button-bg: #00a6a6;
+    --button-text: #ffffff;
+    --button-hover-bg: #008080;
+}
+
+/* Общие стили */
+body {
+    background-color: var(--background-color);
+    color: var(--text-color);
+    font-family: 'Comfortaa', sans-serif;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+.wrapper {
+    display: flex;
+    height: 100vh;
+    overflow: hidden;
+}
+
+/* Сайдбар */
+.sidebar {
+    flex: 0 0 224px;
+    height: 100vh;
+    position: fixed;
+    background-color: #161616;
+    width: 224px;
+    min-width: 224px;
+    transition: width 0.3s ease, height 0.3s ease;
+    display: flex;
+    flex-direction: column;
+}
+
+.sidebar.collapsed {
+    width: 60px;
+    min-width: 60px;
+}
+
+/* Логотип в сайдбаре */
+.sidebar .logo {
+    text-align: center;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 150px;
+}
+
+.sidebar .logo img {
+    width: 100px;
+    transition: width 0.3s ease, transform 0.3s ease;
+}
+
+.sidebar.collapsed .logo img {
+    width: 60px;
+    transform: rotate(90deg);
+}
+
+/* Навигация */
+.sidebar .nav-link {
+    color: #a19b9b;
+    display: flex;
+    align-items: center;
+    padding: 15px 20px;
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 15px;
+    line-height: 25px;
+    letter-spacing: 0.03em;
+    transition: color 0.3s ease, padding 0.3s ease;
+}
+
+.sidebar .nav-link:hover {
+    color: #3498db;
+    background: #1F1F1F;
+    line-height: 25px;
+}
+
+.sidebar .nav-link.active {
+    color: #3498db;
+    background: #1F1F1F;
+    font-size: 18px;
+}
+
+.sidebar .nav-link .icon {
+    margin-right: 10px;
+    transition: margin 0.3s ease;
+}
+
+.sidebar.collapsed .nav-link .icon {
+    margin-right: 0;
+}
+
+.sidebar .nav-link .text {
+    transition: opacity 0.3s ease, width 0.3s ease;
+}
+
+.sidebar.collapsed .nav-link .text {
+    opacity: 0;
+    width: 0;
+}
+
+/* Основной контент */
+.main {
+    flex: 1;
+    margin-left: 230px;
+    transition: margin-left 0.3s ease;
+    padding: 20px;
+    overflow-y: auto;
+    box-sizing: border-box;
+}
+
+.main.expanded {
+    margin-left: 60px;
+}
+
+.content-container {
+    width: 100%;
+    margin: 0 auto;
+    padding: 5px;
+    border-radius: 8px;
+    box-sizing: border-box;
+}
+
+/* Кнопка сайдбара */
+.sidebar-toggle {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 18px;
+    cursor: pointer;
+    transition: color 0.3s ease;
+}
+
+.sidebar-toggle:hover {
+    color: #3498db;
+}
+
+/* Карточки */
+.card {
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    box-shadow: 0 4px 8px var(--card-shadow);
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.card h5,
+.card p {
+    color: var(--text-color);
+}
+
+.card p {
+    margin-bottom: 10px;
+}
+
+.h-100 {
+    height: auto;
+    max-height: 100%;
+}
+
+.list-group-item {
+    display: block;
+    padding: .75rem 1.25rem;
+    background: rgba(10, 8, 8, 0%);
+    border: 1px solid rgba(0, 0, 0, 0.125);
+}
+
+/* Сетка */
+.grid-container {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    width: 100%;
+    height: 100%;
+}
+
+.grid-row {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 10px;
+}
+
+.column {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 50px;
+    background-color: #30424D;
+    color: white;
+    font-weight: bold;
+    border-radius: 5px;
+    text-align: center;
+}
+
+/* Улучшенные цвета колонок */
+.column-1 {
+    background-color: #3498db;
+}
+
+.column-2 {
+    background-color: #2ecc71;
+}
+
+.column-3 {
+    background-color: #e74c3c;
+}
+
+.column-4 {
+    background-color: #9b59b6;
+}
+
+.column-5 {
+    background-color: #f1c40f;
+}
+
+/* Основной стиль карточки с обводкой */
+.card-custom {
+    background-color: #041214;
+    color: #ffffff;
+    padding: 20px;
+    border-radius: 10px;
+    border: 1px dashed rgb(44, 4, 4);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.card-custom h4 {
+    margin-bottom: 10px;
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #f8f9fa;
+}
+
+.card-custom h5 {
+    margin-bottom: 15px;
+    font-size: 1.4rem;
+    color: #dcdcdc;
+    text-align: center;
+}
+
+.card-custom p {
+    margin: 3px 0;
+    font-size: 1rem;
+    color: #324645;
+}
+
+/* Прочие стили */
+label {
+    display: inline-block;
+    margin-bottom: .0rem;
+}
+
+.table-container {
+    overflow-x: auto;
+    margin: 0 auto 20px;
+}
+
+/* Мобильные стили */
+@media (max-width: 992px) {
+    .sidebar .collapsed {
+        width: 60px;
+    }
+
+    .card {
+        padding: 15px;
+        margin: 10px 0;
+        background-color: #30424D;
+        border-radius: 8px;
+    }
+
+    .h-100 {
+        height: auto;
+        max-height: 100%;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    th,
+    td {
+        padding: 10px;
+        text-align: center;
+        color: #dbdbdb;
+    }
+
+    th {
+        background-color: #041214;
+        color: #b5bcbf;
+    }
+}
+
+.btn-custom {
+    display: inline-block;
+    margin-top: 20px;
+    padding: 12px 20px;
+    background-color: #00a6a6;
+    color: #ffffff;
+    text-align: center;
+    font-size: 1rem;
+    font-weight: 500;
+    text-decoration: none;
+    border-radius: 8px;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.btn-custom:hover {
+    background-color: #008080;
+    transform: translateY(-2px);
+}
+
+.btn-custom:active {
+    background-color: #007070;
+    transform: translateY(0);
+}
+
+.form-control {
+    display: block;
+    width: 100%;
+    height: calc(1.5em + .75rem + 2px);
+    padding: .375rem .75rem;
+    font-size: 1rem;
+    font-weight: 400;
+    line-height: 1.5;
+    color: #495057;
+    background-color: #335a5a;
+    background-clip: padding-box;
+    border: 1px solid #ced4da;
+        border-radius: .25rem;
+        }
+
+        .form-custom {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: center;
+            padding: 10px;
+            background-color: #171717;
+            border: 1px solid #101010;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            color: #a19b9b;
+        }
+
+        .form-custom label {
+            font-size: 1rem;
+            font-weight: bold;
+            color: #a19b9b;
+        }
+
+        .form-custom input[type="date"] {
+            padding: 8px 12px;
+            font-size: 1rem;
+            border: 1px solid #190c1b;
+            border-radius: 5px;
+            background-color: #181818;
+            color: #a19b9b;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-custom input[type="date"]:focus {
+            border-color: #083f7a;
+            outline: none;
+            box-shadow: 0 0 5px rgba(0, 123, 255, 0.5);
+        }
+
+        .form-custom button {
+            padding: 10px 20px;
+            font-size: 1rem;
+            font-weight: bold;
+            color: #a19b9b;
+            background-color: #182029;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.2s ease;
+        }
+
+        .form-custom button:hover {
+            background-color: #182029;
+            transform: translateY(-2px);
+            color: #083f7a;
+        }
+
+        .form-custom button:active {
+            background-color: #004085;
+            transform: translateY(0);
+        }
+
+        .form-account {
+            padding: 20px;
+            background-color: #041214;
+            border-radius: 10px;
+            color: #a19b9b;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .balance-list {
+            list-style: none;
+            padding: 0;
+            margin: 0 0 20px;
+        }
+
+        .balance-list li {
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .balance-list label {
+            font-size: 1rem;
+            font-weight: bold;
+            color: #dcdcdc;
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+        }
+
+        .balance-list input[type="text"] {
+            background-color: #495057;
+            border: none;
+            border-radius: 5px;
+            color: #fff;
+            padding: 5px 10px;
+            font-size: 1rem;
+            width: 60%;
+            text-align: right;
+            pointer-events: none;
+        }
+
+        .form-account button {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .form-account button:hover {
+            background-color: #0056b3;
+        }
+
+        .form-account button:active {
+            background-color: #003f7f;
+        }
+
+        .accordion-button {
+            background-color: #343a40;
+            color: #fff;
+        }
+
+        .accordion-button:focus {
+            box-shadow: none;
+        }
+
+        .table-dark {
+            background-color: #212529;
+            color: #fff;
+        }
+
+        .table-dark th,
+        .table-dark td {
+            border-color: #495057;
+        }
+
+        .soft-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            background-color: #1b1f2a;
+            color: #ffffff;
+            font-size: 14px;
+            font-family: Arial, sans-serif;
+        }
+
+        .soft-table thead th {
+            background-color: #212733;
+            padding: 10px;
+            font-weight: 700;
+            text-align: left;
+            border-bottom: 2px solid #2f3545;
+        }
+
+        .soft-table tbody td {
+            padding: 8px 10px;
+            border-bottom: 1px solid #2f3545;
+            white-space: nowrap;
+        }
+
+        .soft-table tr:hover {
+            background-color: #2f3545;
+        }
+
+        .analysis-container {
+            padding: 20px;
+            background-color: #142327;
+        }
+
+        .analysis-container h2 {
+            margin: 20px 0 10px;
+            font-size: 18px;
+            font-weight: 600;
+            color: #142327;
+        }
+
+        /* Заголовки */
+        .page-title {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #a19b9b;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #bb785d;
+            margin-bottom: 15px;
+        }
+
+        /* Карточки */
+        .strategy-card,
+        .regression-card,
+        .indicators-card {
+            padding: 15px;
+            background-color: #272727;
+            border: 0px solid #ff6e6e;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        /* Заголовок таймфрейма */
+        .timeframe-title {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #a19b9b;
+            margin-bottom: 10px;
+        }
+        /* Таблицы */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background-color: var(--table-bg-color);
+        }
+                th,
+                td {
+                    padding: 5px;
+                    border: 1px solid #171717;
+                    text-align: center;
+                    color: #a19b9b;
+                }
+
+                th {
+                    background-color: #171717;
+                    color: #d3d3d3;
+                }
+                                td[data-signal="buy"] {
+                                    background-color: #00ff00;
+                                    /* Зеленый */
+                                    color: black;
+                                }
+
+                                td[data-signal="sell"] {
+                                    background-color: #ff0000;
+                                    /* Красный */
+                                    color: white;
+                                }
+
+                                td[data-signal="neutral"] {
+                                    background-color: #ffff00;
+                                    /* Желтый */
+                                    color: black;
+                                }
+
+                                .tooltip-trigger {
+                                    position: relative;
+                                    cursor: pointer;
+                                }
+
+                                .tooltip-content {
+                                    visibility: hidden;
+                                    width: 200px;
+                                    background-color: black;
+                                    color: white;
+                                    text-align: center;
+                                    border-radius: 6px;
+                                    padding: 5px;
+                                    position: absolute;
+                                    z-index: 1;
+                                    bottom: 100%;
+                                    /* Выше элемента */
+                                    left: 50%;
+                                    margin-left: -100px;
+                                    opacity: 0;
+                                    transition: opacity 0.3s;
+                                }
+
+                                .tooltip-trigger:hover .tooltip-content {
+                                    visibility: visible;
+                                    opacity: 1;
+                                }
+
+                .filter-buttons {
+                    display: flex;
+                    gap: 10px;
+                    justify-content: center;
+                    margin-bottom: 15px;
+                }
+        /* Таблица */
+        .analysis-table {
+            width: 100%;
+            border-collapse: collapse;
+            background-color: var(--table-bg-color);
+        }
+
+        .analysis-table tr {
+            border-bottom: 1px solid #eee;
+        }
+
+        .analysis-table td {
+            padding: 10px;
+            font-size: 0.95rem;
+            background-color: var(--table-bg-color);
+        }
+
+        .analysis-table td:first-child {
+            font-weight: bold;
+        }
+
+        .analysis-table tr:last-child {
+            border-bottom: none;
+        }
+.global-info div {
+    margin-bottom: 10px;
+}
+
+.trend-info ul {
+    padding-left: 0;
+    list-style: none;
+}
+
+.trend-info ul li {
+    display: inline-block;
+    margin-right: 15px;
+    font-size: 1rem;
+    color: #a19b9b;
+}
+
+.global-info {
+    background-color: #202020;
+    color: #d1cbcb;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.global-info h5 {
+    font-size: 1.4rem;
+    font-weight: bold;
+    color: #bb785d;
+    text-align: center;
+}
+
+.global-info p {
+    font-size: 1rem;
+    margin: 5px 0;
+    color: #bb785d;
+}
+
+.global-info div {
+    margin-bottom: 10px;
+}
+
+@media (max-width: 768px) {
+    .global-info {
+        font-size: 0.9rem;
+    }
+}
+
+.header-timezones {
+
+    justify-content: space-around;
+    align-items: center;
+
+    padding: 10px 20px;
+    border-bottom: 1px solid var(--border-color);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.header-timezones .timezone {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-size: 0.9rem;
+    color: var(--header-text);
+}
+
+.header-timezones .timezone strong {
+
+    font-size: 1rem;
+    color: var(--button-bg);
+}
+
+.header-timezones .timezone span {
+    font-size: 1.8rem;
+    /* Увеличим размер текста */
+    margin-top: 5px;
+
+
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: #a19b9b;
+    /* Скрываем цвет, чтобы виден был градиент */
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6), 0 0 10px rgba(255, 255, 255, 0.4);
+    animation: gradient-move 3s ease infinite;
+    /* Добавим эффект анимации */
+    padding: 5px 10px;
+    border-radius: 8px;
+    transition: transform 0.2s ease-in-out;
+}
+
+.header-timezones .timezone span:hover {
+    transform: scale(1.1);
+    /* Увеличение при наведении */
+}
+
+@keyframes gradient-move {
+    0% {
+        background-position: 0% 50%;
+    }
+
+    50% {
+        background-position: 100% 50%;
+    }
+
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+
+.fancy-clock {
+    display: flex;
+    /* justify-content: center; */
+    align-items: left;
+    background: linear-gradient(45deg, #161616, #272727, #631f18, #332a1c, #191919);
+    background-size: 300% 300%;
+    animation: gradientShift 8s infinite;
+    border-radius: 12px;
+    /* padding: 20px; */
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+}
+
+
+@keyframes gradientShift {
+    0% {
+        background-position: 0% 50%;
+    }
+
+    50% {
+        background-position: 100% 50%;
+    }
+
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+.fancy-clock #clock-time {
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 2.5rem;
+    /* color: #799b8b; */
+    text-shadow: 0 2px 5px rgba(0, 0, 0, 0.7), 0 0 20px rgba(255, 255, 255, 0.5);
+}
+
+/* .upcoming-news {
+    font-family: 'Courier New', Courier, monospace; */
+    /* font-size: 1.2rem;
+    color: #799b8b;
+    text-shadow: 0 2px 3px rgba(0, 0, 0, 0.7), 0 0 20px rgba(255, 255, 255, 0.5);
+} */ */
+/* Основной стиль строки */
+/* Начально скрываем все, кроме первых двух элементов */
+.clickable-row {
+    /* background-color: #f9f9f9; */
+    border-radius: 5px;
+    padding: 15px;
+    margin: 10px 0;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+h5 {
+    font-size: 1.5em;
+    margin-bottom: 10px;
+    color: #333;
+}
+
+#economic-news-list {
+    list-style-type: none;
+    /* Убираем маркеры списка */
+    padding: 0;
+    background-color: #171717;
+}
+
+#economic-news-list li {
+    display: none;
+    /* Скрываем все элементы по умолчанию */
+    padding: 8px 12px;
+    border-bottom: 1px solid #353535;
+}
+
+#economic-news-list li:last-child {
+    border-bottom: none;
+    /* Убираем нижнюю границу у последнего элемента */
+}
+
+#economic-news-list li:nth-child(-n+2) {
+    display: list-item;
+    /* Отображаем первые два элемента */
+}
+
+#economic-news-list li.visible {
+    display: list-item;
+    /* Отображение элементов с классом visible */
+    background-color: #171717;
+    /* Легкий фон для выделения */
+}
+
+#toggle-news {
+    margin-top: 10px;
+    /* padding: 8px 12px; */
+    background-color: #007bff;
+    /* Цвет кнопки */
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+#toggle-news:hover {
+    background-color: #0056b3;
+    /* Цвет при наведении */
+}
+
+#toggle-news.hidden {
+    display: none;
+    /* Скрываем кнопку, если все элементы видны */
+}
+
+/* === Полоса прокрутки === */
+html {
+    scrollbar-width: thin;
+    /* Для Firefox */
+    scrollbar-color: #070707 #1F1F1F;
+    /* Цвет полосы прокрутки и фона */
+}
+
+::-webkit-scrollbar {
+    width: 8px;
+    /* Ширина скролла */
+    height: 8px;
+    /* Высота горизонтального скролла */
+}
+
+::-webkit-scrollbar-thumb {
+    background-color: #171717;
+    /* Цвет ползунка */
+    border-radius: 6px;
+    /* Скругленные углы */
+    border: 3px solid #2c3e50;
+    /* Отступ от края */
+}
+
+::-webkit-scrollbar-track {
+    background: #2c3e50;
+    /* Цвет фона трека */
+    border-radius: 6px;
+    /* Скругленные углы трека */
+}
+
+/* === Кнопки === */
+button {
+    background-color: #3498db;
+    /* Основной цвет кнопки */
+    color: white;
+    border: 2px solid #2c3e50;
+    /* Контур */
+    border-radius: 5px;
+    /* Скругленные углы */
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.3s, transform 0.2s;
+}
+
+/* button:hover {
+    background-color: #2980b9;
+    transform: scale(1.05);
+}
+
+button:active {
+    background-color: #1abc9c;
+    transform: scale(0.95);
+} */
+
+/* === Поля ввода === */
+/* input[type="text"],
+input[type="password"],
+textarea {
+    background-color: #2c3e50;
+    color: white;
+    border: 2px solid #3498db;
+    border-radius: 5px;
+    padding: 10px;
+    font-size: 16px;
+    width: 100%;
+    box-sizing: border-box;
+    transition: border-color 0.3s ease;
+}
+
+input:focus,
+textarea:focus {
+    border-color: #1abc9c;
+    outline: none;
+    box-shadow: 0 0 5px #1abc9c;
+} */
+
+/* === Чекбоксы и радиокнопки === */
+input[type="checkbox"],
+input[type="radio"] {
+    accent-color: #171717;
+    /* Основной цвет */
+    width: 12px;
+    height: 12px;
+}
+
+/* === Выпадающие списки === */
+select {
+    background-color: #171717;
+    color: white;
+    /* border: 2px solid #10202b; */
+    border-radius: 5px;
+    padding: 10px;
+    font-size: 16px;
+    appearance: none;
+    /* Убираем стрелку браузера */
+
+}
+
+select:focus {
+    border-color: #1abc9c;
+    outline: none;
+}
+
+.timeframe-block {
+    margin-bottom: 20px;
+    padding: 15px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    background-color: #191919;
+}
+
+.timeframe-title {
+    font-size: 18px;
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+.strategy-block {
+    margin-bottom: 10px;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    background-color: #191919;
+}
+
+.strategy-block h4 {
+    font-size: 16px;
+    margin-bottom: 5px;
+}
+
+.strategy-block ul {
+    list-style-type: none;
+    padding-left: 0;
+}
+.signal-buy {
+    color: #28a745;
+    /* Зеленый для BUY */
+    font-weight: bold;
+}
+
+.signal-sell {
+    color: #dc3545;
+    /* Красный для SELL */
+    font-weight: bold;
+}
+
+.signal-no_signal {
+    color: #6c757d;
+    /* Серый для NO SIGNAL */
+    font-weight: bold;
+}
+.hidden {
+    display: none;
+}
+
+.strategy-block .toggle-details {
+    margin-top: 10px;
+    padding: 5px 10px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.strategy-block .toggle-details:hover {
+    background-color: #0056b3;
+}
+.strategies-container {
+    max-height: 600px;
+    overflow-y: auto;
+}
+
+table th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+.strategy-details ul {
+    list-style-type: none;
+    padding-left: 0;
+}
+
+.strategy-details ul li {
+    margin-bottom: 5px;
+    color: #f1f1f1;
+    /* Светлый цвет текста */
+}
+
+.strategy-details p {
+    color: #ff6666;
+    /* Красный цвет для предупреждений */
+}
+
+.hidden {
+    display: none;
+}
+
+.timeframe-block {
+    margin-bottom: 20px;
+    padding: 15px;
+    border: 1px solid #333;
+    border-radius: 8px;
+    background-color: #1e1e1e;
+    /* Темный фон */
+    /* color: white; */
+}
+
+.timeframe-title {
+    font-size: 18px;
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+.strategy-block {
+    margin-bottom: 10px;
+    padding: 10px;
+    border: 1px solid #444;
+    border-radius: 6px;
+    background-color: #2c2c2c;
+    /* Цвет для блоков стратегий */
+}
+.pre {
+    color: #797979;
+}
+
+/* Допустим, файл: static/css/styles.css */
+
+.content_menu {
+    display: flex;
+    justify-content: center;
+    /* Центрируем меню */
+    gap: 15px;
+    /* Пробел между ссылками */
+    padding: 10px 0;
+    /* Отступы сверху и снизу */
+    /* background-color: #f5f5f5; */
+    /* Фон для меню */
+    /* border-bottom: 2px solid #ddd; */
+    /* Линия под меню */
+}
+
+.content_menu a {
+    text-decoration: none;
+    /* Убираем подчеркивание */
+    /* color: #333; */
+    /* Цвет текста */
+    font-weight: bold;
+    /* Жирный текст */
+    padding: 5px 10px;
+    /* Отступы внутри ссылки */
+    border-radius: 5px;
+    /* Скругленные углы */
+    transition: background-color 0.3s, color 0.3s;
+    /* Анимация при наведении */
+}
+
+.content_menu a:hover {
+    background-color: #4e0909;
+    /* Синий фон при наведении */
+    color: #fff;
+    /* Белый текст при наведении */
+}
+.analysis-buttons {
+    display: flex;
+    gap: 10px;
+    /* Отступ между кнопками */
+}
+
+.inline-form {
+    display: inline;
+}
+
+/* Общий стиль для карточки AI анализа */
+.card-recomendation {
+    /* background-color: #f8f9fa; */
+    border: 1px solid #161616;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+    margin-top: 20px;
+}
+
+.card-recomendation h3 {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: #606060;
+    margin-bottom: 15px;
+}
+
+.rec-container {
+    font-size: 1rem;
+    /* color: #495057; */
+    line-height: 1.6;
+}
+
+.rec-container ul {
+    list-style-type: none;
+    padding: 0;
+}
+
+.rec-container ul li {
+    margin-bottom: 15px;
+    padding: 10px;
+    border-left: 4px solid #6c757d;
+    /* background-color: #e9ecef; */
+    border-radius: 5px;
+}
+
+.rec-container ul li strong {
+    color: #9bcbfc;
+    font-weight: 600;
+}
+
+.rec-container ul li:hover {
+    background-color: #191919;
+    border-left-color: #495057;
+}
+
+.rec-container ul li:nth-child(even) {
+    background-color: #212121;
+}
+.pagination {
+    display: flex;
+    justify-content: center;
+    margin-top: 20px;
+}
+
+.pagination .step-links a,
+.pagination .step-links .current {
+    margin: 0 5px;
+    padding: 5px 10px;
+    text-decoration: none;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+}
+
+.pagination .step-links .current {
+    /* background-color: #f0f0f0; */
+    font-weight: bold;
+}
+
+.pagination .step-links a:hover {
+    background-color: #272727;
+}
+
+.hidden-content {
+    display: none;
+    background-color: #222;
+    color: #ddd;
+    padding: 10px;
+}
+
+.indicator-green {
+    background-color: green;
+    color: #000;
+}
+
+.indicator-yellow {
+    background-color: yellow;
+    color: #000;
+}
+
+.indicator-red {
+    background-color: red;
+    color: #fff;
+}
+
+.expandable {
+    cursor: pointer;
+}
+
+td[data-expand] {
+    cursor: pointer;
+    position: relative;
+}
+
+.hidden-content {
+    display: none;
+    background-color: #282828;
+    color: #fff;
+    border: 1px solid #444;
+    padding: 10px;
+    margin-top: 5px;
+    position: absolute;
+    z-index: 100;
+}
+
+td[data-expand]:hover .hidden-content {
+    display: block;
+}
+.analysis-table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: center;
+    font-family: Arial, sans-serif;
+}
+
+.analysis-table th,
+.analysis-table td {
+    border: 1px solid #ddd;
+    padding: 8px;
+}
+
+.analysis-table th {
+    background-color: #f4f4f4;
+    color: #333;
+    font-weight: bold;
+}
+
+.analysis-table tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+
+.analysis-table tr:hover {
+    background-color: #f1f1f1;
+}
+
+.indicator-badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 4px;
+    color: #fff;
+    font-size: 0.9em;
+}
+
+.indicator-badge.green {
+    background-color: #28a745;
+}
+
+.indicator-badge.red {
+    background-color: #dc3545;
+}
+
+.indicator-badge.yellow {
+    background-color: #ffc107;
+    color: #212529;
+}
+.fib-details {
+    display: none;
+    /* По умолчанию скрываем дополнительные данные */
+    margin-top: 5px;
+    font-size: 0.9em;
+    color: #ccc;
+}
+
+[data-expand]:hover {
+    cursor: pointer;
+    background-color: #272727;
+    /* Меняем цвет ячейки при наведении */
+}
+
+[data-expand].expanded .fib-details {
+    display: block;
+    /* Показываем данные при клике */
+}
+.hidden {
+    display: none;
+}
+
+.fib-cell {
+    cursor: pointer;
+    padding: 10px;
+    text-align: center;
+    border: 1px solid #5a635c;
+    transition: background-color 0.3s ease;
+}
+
+.fib-level {
+    padding: 5px;
+    border-radius: 4px;
+    margin: 2px 0;
+}
+
+.fib-summary {
+    font-weight: bold;
+    padding: 10px;
+    color: #000;
+}
+
+.fib-details {
+    margin-top: 10px;
+    font-size: 0.9em;
+
+}
+
+.fib-level[data-copy],
+.fib-extremes span[data-copy] {
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.fib-level[data-copy]:hover,
+.fib-extremes span[data-copy]:hover {
+    background-color: #282828;
+    /* Светло-серый */
+}
+
+.copy-price {
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.copy-price:hover {
+    background-color: #202020;
+    /* Светло-серый при наведении */
+}

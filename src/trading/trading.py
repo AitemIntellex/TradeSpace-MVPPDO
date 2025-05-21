@@ -1,4 +1,4 @@
-# trading.py
+# TradeSpace_v3_/src/trading/trading.py
 import logging
 import os
 import datetime
@@ -64,7 +64,7 @@ def log_data_error(symbol):
 
 
 def calculate_regression_channel(symbol, timeframe):
-    df = get_rates_dataframe(symbol, timeframe, period=660)
+    df = get_rates_dataframe(symbol, timeframe, period=500)
     if df is None or df.empty:
         logging.error(
             f"Ошибка: Недостаточно данных для регрессионного анализа по символу {symbol} и таймфрейму {timeframe}"
@@ -115,12 +115,12 @@ def prepare_fibonacci_levels_as_fields(symbol, timeframe, trend="up"):
     return formatted_levels
 
 
-def prepare_fibonacci_levels(symbol, timeframe, trend="up"):
+def prepare_fibonacci_levels(symbol, timeframe, trend="up", as_string=False):
     fib_levels = calculate_fibonacci_levels(symbol, timeframe, trend)
     if fib_levels is None:
-        return "Нет данных"
-    # Форматируем данные в строку
-    # return ", ".join(f"{level}: {price:.5f}" for level, price in fib_levels.items())
+        return "Нет данных" if as_string else {}
+    if as_string:
+        return ", ".join(f"{level}: {price:.5f}" for level, price in fib_levels.items())
     return {f"fib_{key.split('.')[0]}": value for key, value in fib_levels.items()}
 
 

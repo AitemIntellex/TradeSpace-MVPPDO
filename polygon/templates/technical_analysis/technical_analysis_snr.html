@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Trading Chart</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      type="text/css"
+      href="https://cdn.datatables.net/1.13.4/css/jquery.dataTables.min.css"
+    />
+    <style>
+      /* ... (Your CSS styles) ... */
+    </style>
+  </head>
+  <body>
+    <div class="container-fluid">
+      <div class="row">
+        <div class="col-md-12">
+          <div class="chart-container">
+            <div id="candlestick-chart"></div>
+            <div id="oscillator-chart"></div>
+          </div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-md-12">
+          <div class="checkbox-container">
+            <div id="levels-checkboxes"></div>
+            <div id="trends-checkboxes"></div>
+            <div id="oscillators-checkboxes"></div>
+          </div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="col-md-12">
+          <div class="table-container">
+            <table class="table table-dark table-striped">
+              <thead>
+                <tr>
+                  <th>Time</th>
+                  <th>Open</th>
+                  <th>High</th>
+                  <th>Low</th>
+                  <th>Close</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/plug-ins/1.13.4/i18n/Russian.json"></script>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+      // ... (Your JavaScript code) ...
+
+      $(document).ready(function () {
+        // Initialize DataTable after the table body is populated
+        function initializeDataTable() {
+          $(".table").DataTable({
+            paging: true,
+            searching: true,
+            ordering: true,
+            info: true,
+            responsive: true,
+            language: {
+              url: "//cdn.datatables.net/plug-ins/1.13.4/i18n/Russian.json",
+            },
+          });
+        }
+
+        // Load chart and table data
+        async function loadChartData(symbol, timeframe, num_candles = 50) {
+          const response = await fetch(
+            `/chart/api/data/?symbol=${symbol}&timeframe=${timeframe}&num_candles=${num_candles}`
+          );
+          const data = await response.json();
+
+          if (data.error) {
+            console.error("Ошибка загрузки данных:", data.error);
+            return;
+          }
+
+          updatePlotlyChart(data.ohlc);
+          updateIndicators(data.indicators);
+          updateTable(data.ohlc); // Populate the table with data
+
+          // Initialize DataTable only once, after data is loaded and table is updated
+          if (!$.fn.dataTable.isDataTable(".table")) {
+            // Check if DataTable is already initialized
+            initializeDataTable();
+          }
+        }
+
+        function updateTable(ohlcData) {
+          const tableBody = $(".table tbody");
+          tableBody.empty(); // Clear existing rows
+
+          ohlcData.forEach((item) => {
+            const row = `<tr>
+                                <td>${item.time}</td>
+                                <td>${item.open}</td>
+                                <td>${item.high}</td>
+                                <td>${item.low}</td>
+                                <td>${item.close}</td>
+                            </tr>`;
+            tableBody.append(row);
+          });
+        }
+        // ... rest of your JavaScript code
+      });
+    </script>
+  </body>
+</html>

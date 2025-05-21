@@ -90,10 +90,11 @@ async function fetchEconomicNews() {
       newsList.innerHTML = "<li>Нет ближайших новостей.</li>";
     } else {
       data.events.forEach((event) => {
-        const li = document.createElement("li");
-        li.innerHTML = `<strong>${event.time} (${event.country}):</strong> ${event.name} (Влияние: ${event.impact} звезды)`;
-        newsList.appendChild(li);
-      });
+      const stars = "★".repeat(event.impact); // Преобразование числа в звёзды
+      const li = document.createElement("li");
+      li.innerHTML = `<strong>${event.time} (${event.country}):</strong> ${event.name} (${stars})`;
+      newsList.appendChild(li);
+    });
     }
   } catch (error) {
     console.error("Ошибка загрузки экономических новостей:", error);
@@ -175,4 +176,51 @@ function toggleDetails(id) {
     } else {
         details.style.display = "none";
     }
+}
+function renderCandlestickChart(data, chartId) {
+    // Проверяем, существует ли элемент с указанным ID
+    const chartElement = document.getElementById(chartId);
+    if (!chartElement) {
+        console.error(`Элемент с ID "${chartId}" не найден.`);
+        return;
+    }
+
+    // Проверяем, есть ли данные
+    if (!data || data.length === 0) {
+        chartElement.innerHTML = 'Нет данных для отображения свечей';
+        console.warn('OHLC данные пустые для графика:', chartId);
+        return;
+    }
+
+    // Проверяем, достаточно ли данных
+    if (data.length <= 1) {
+        chartElement.innerHTML = 'Недостаточно данных для отображения свечей';
+        console.warn('Недостаточно данных для графика:', chartId);
+        return;
+    }
+
+    // Подготавливаем данные для Plotly
+    const trace = {
+        x: data.map(item => item.time),
+        open: data.map(item => item.open),
+        high: data.map(item => item.high),
+        low: data.map(item => item.low),
+        close: data.map(item => item.close),
+        type: 'candlestick',
+    };
+
+    // Настройки макета графика
+    const layout = {
+        title: 'Японские свечи',
+        xaxis: {
+            title: 'Время',
+            rangeslider: { visible: false },
+        },
+        yaxis: {
+            title: 'Цена',
+        },
+    };
+
+    // Построение графика
+    Plotly.newPlot(chartId, [trace], layout);
 }

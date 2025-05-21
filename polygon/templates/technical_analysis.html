@@ -1,0 +1,311 @@
+{% extends "base.html" %} {% load static %}{% load custom_filters %} {% block content %}
+<!-- Включаем наш navbar -->
+  {% include "partials/navbar.html" %}
+
+<!-- Форма управления количеством отображаемых значений -->
+<div class="section" id="main-filter">
+  <h2>Параметры отображения</h2>
+  <form method="get" action="">
+    <label for="num_values">Количество последних значений:</label>
+    <select name="num_values" id="num_values">
+      <option value="1" {% if num_values == '1' %}selected{% endif %}>1</option>
+      <option value="3" {% if num_values == '3' %}selected{% endif %}>3</option>
+      <option value="5" {% if num_values == '5' %}selected{% endif %}>5</option>
+      <option value="7" {% if num_values == '7' %}selected{% endif %}>7</option>
+    </select>
+    <input type="submit" class="btn btn-ghost btn-dark" value="Обновить">
+  </form>
+</div>
+
+<!-- Секция: Структура рынка (Trend, Support/Resistance) -->
+<div class="section" id="market-structure">
+  <h2>Структура рынка</h2>
+  <table class="analysis-table">
+    <thead>
+      <tr>
+        <th>Таймфрейм</th>
+        <th>Тренд</th>
+        <th>Поддержка</th>
+        <th>Сопротивление</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for timeframe in market_structure_by_timeframe %}
+      <tr>
+        <td>{{ timeframe }}</td>
+        <td>
+          <span class="badge {{ market_structure_by_timeframe|get_value:timeframe|get_value:'trend'|lower }}">
+            {{ market_structure_by_timeframe|get_value:timeframe|get_value:"trend" }}
+          </span>
+        </td>
+        <td>{{ market_structure_by_timeframe|get_value:timeframe|get_value:"support" }}</td>
+        <td>{{ market_structure_by_timeframe|get_value:timeframe|get_value:"resistance" }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- Секция: Трендовые индикаторы -->
+<div class="section" id="trend-indicators">
+  <h2>Трендовые индикаторы</h2>
+  <table class="analysis-table">
+    <thead>
+      <tr>
+        <th>Таймфрейм</th>
+        <th>Regression Slope</th>
+        <th>SMA</th>
+        <th>Боллинджер Верхняя (Upper Band)</th>
+        <th>Боллинджер Нижняя (Lower Band)</th>
+        <!-- Здесь же можно поместить RSI, MACD, Signal — если вы считаете их трендовыми -->
+        <th>RSI</th>
+        <th>MACD</th>
+        <th>Signal</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for timeframe, indicators in indicators_by_timeframe.items %}
+      <tr>
+        <td>{{ timeframe }}</td>
+        <!-- Regression Slope -->
+        <td>
+          {% if regression_channel_by_timeframe|get_value:timeframe %}
+            {{ regression_channel_by_timeframe|get_value:timeframe|get_value:"slope"|floatformat:5 }}
+          {% else %}
+            -
+          {% endif %}
+        </td>
+        <!-- SMA -->
+        <td>{{ indicators.sma|join:", " }}</td>
+        <!-- Bollinger Bands -->
+        <td>{{ indicators.upper_band|join:", " }}</td>
+        <td>{{ indicators.lower_band|join:", " }}</td>
+        <!-- RSI, MACD, Signal -->
+        <td>{{ indicators.rsi|join:", " }}</td>
+        <td>{{ indicators.macd|join:", " }}</td>
+        <td>{{ indicators.signal|join:", " }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- Секция: Уровневые индикаторы (Pivot Points, Fibonacci OTE и т.д.) -->
+<div class="section" id="levels-indicators">
+  <h2>Уровневые индикаторы</h2>
+  <table class="analysis-table">
+    <thead>
+      <tr>
+        <th rowspan="2">Таймфрейм</th>
+        <th rowspan="2">Fibonacci OTE (fib_70)</th>
+        <th colspan="3">Pivot Points</th>
+      </tr>
+      <tr>
+        <th>Pivot</th>
+        <th>Support Levels</th>
+        <th>Resistance Levels</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for timeframe, indicators in indicators_by_timeframe.items %}
+      <tr>
+        <td>{{ timeframe }}</td>
+        <!-- Fibonacci OTE (fib_70) -->
+        <td>{{ ote_levels_by_timeframe|get_value:timeframe|get_value:"fib_70"|default:"-" }}</td>
+        <!-- Pivot Points -->
+        <td>
+          {% if indicators.pivot %}
+            {{ indicators.pivot|join:", " }}
+          {% else %}
+            -
+          {% endif %}
+        </td>
+        <td>
+          {% if indicators.pp_support %}
+            {% for level in indicators.pp_support %}
+              {{ level }}<br>
+            {% endfor %}
+          {% else %}
+            -
+          {% endif %}
+        </td>
+        <td>
+          {% if indicators.pp_resistance %}
+            {% for level in indicators.pp_resistance %}
+              {{ level }}<br>
+            {% endfor %}
+          {% else %}
+            -
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- Секция: Объёмные индикаторы (ATR, CCI, MFI, VWAP, Stochastic и т.д.) -->
+<div class="section" id="volume-indicators">
+  <h2>Объёмные и прочие индикаторы</h2>
+  <table class="analysis-table">
+    <thead>
+      <tr>
+        <th>Таймфрейм</th>
+        <th>ATR</th>
+        <th>CCI</th>
+        <th>MFI</th>
+        <th>VWAP</th>
+        <th>Stochastic K</th>
+        <th>Stochastic D</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for timeframe, indicators in indicators_by_timeframe.items %}
+      <tr>
+        <td>{{ timeframe }}</td>
+        <td>{{ indicators.atr|join:", " }}</td>
+        <td>{{ indicators.cci|join:", " }}</td>
+        <td>{{ indicators.mfi|join:", " }}</td>
+        <td>{{ indicators.vwap|join:", " }}</td>
+        <td>{{ indicators.stochastic_k|join:", " }}</td>
+        <td>{{ indicators.stochastic_d|join:", " }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<!-- Секция: Результаты регрессионного канала -->
+<div class="section" id="regression-channel">
+  <h2>Результаты регрессионного канала</h2>
+  <table class="analysis-table">
+    <thead>
+      <tr>
+        <th>Таймфрейм</th>
+        <th>Наклон тренда (Slope)</th>
+        <th>Пересечение оси Y (Intercept)</th>
+        <th>Верхний уровень канала</th>
+        <th>Нижний уровень канала</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for timeframe, result in regression_channel_by_timeframe.items %}
+      <tr>
+        <td>{{ timeframe }}</td>
+        <td>{{ result.slope|floatformat:5 }}</td>
+        <td>{{ result.intercept|floatformat:2 }}</td>
+        <td>{{ result.upper_channel|floatformat:2 }}</td>
+        <td>{{ result.lower_channel|floatformat:2 }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+
+
+<!-- Секция: Стратегии -->
+<!-- Секция: Стратегии (ICT, SMC, SNR) в единой таблице -->
+<div class="section" id="strategy-analysis">
+  <h2>Стратегии (ICT, SMC, SNR)</h2>
+  <table class="analysis-table">
+    <thead>
+      <tr>
+        <th rowspan="2">Таймфрейм</th>
+        <!-- Шапка ICT -->
+        <th colspan="4">ICT</th>
+        <!-- Шапка SMC -->
+        <th colspan="4">SMC</th>
+        <!-- Шапка SNR -->
+        <th colspan="3">SNR</th>
+      </tr>
+      <tr>
+        <!-- Подзаголовки для ICT -->
+        <th>Сигнал</th>
+        <th>Тренд</th>
+        <th>FVG-зоны</th>
+        <th>Fibo-уровни</th>
+
+        <!-- Подзаголовки для SMC -->
+        <th>Сигнал</th>
+        <th>Тренд</th>
+        <th>FVG-зоны</th>
+        <th>Fibo-уровни</th>
+
+        <!-- Подзаголовки для SNR -->
+        <th>Сигнал</th>
+        <th>Тренд</th>
+        <th>FVG-зоны</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for timeframe, strategies in strategies_process_by_timeframe.items %}
+    {% with ict=strategies.ICT smc=strategies.SMC snr=strategies.SNR %}
+      <tr>
+        <!-- Таймфрейм (одна ячейка на всю строку) -->
+        <td>{{ timeframe }}</td>
+
+        <!-- ICT -->
+        <td>{{ ict.signal|default:"-" }}</td>
+        <td>{{ ict.trend|default:"-" }}</td>
+        <td>
+          {# Проверка, совпадают ли FVG у всех трёх стратегий #}
+          {% if ict.fvg_zones == smc.fvg_zones and smc.fvg_zones == snr.fvg_zones and ict.fvg_zones %}
+            <!-- Выводим один раз, если не пусто и у всех совпадает -->
+            {{ ict.fvg_zones|default:"-" }}
+          {% else %}
+            {{ ict.fvg_zones|default:"-" }}
+          {% endif %}
+        </td>
+        <td>
+          {% if ict.fib_levels %}
+            {% for level, value in ict.fib_levels.items %}
+              {{ level }}: {{ value|default:"-" }}<br>
+            {% endfor %}
+          {% else %}
+            -
+          {% endif %}
+        </td>
+
+        <!-- SMC -->
+        <td>{{ smc.signal|default:"-" }}</td>
+        <td>{{ smc.trend|default:"-" }}</td>
+        <td>
+          {# Если FVG у всех совпадает, показываем прочерк, иначе выводим SMC #}
+          {% if ict.fvg_zones == smc.fvg_zones and smc.fvg_zones == snr.fvg_zones and ict.fvg_zones %}
+            -
+          {% else %}
+            {{ smc.fvg_zones|default:"-" }}
+          {% endif %}
+        </td>
+        <td>
+          {% if smc.fib_levels %}
+            {% for level, value in smc.fib_levels.items %}
+              {{ level }}: {{ value|default:"-" }}<br>
+            {% endfor %}
+          {% else %}
+            -
+          {% endif %}
+        </td>
+
+        <!-- SNR -->
+        <td>{{ snr.signal|default:"-" }}</td>
+        <td>{{ snr.trend|default:"-" }}</td>
+        <td>
+          {# Аналогично для SNR #}
+          {% if ict.fvg_zones == smc.fvg_zones and smc.fvg_zones == snr.fvg_zones and ict.fvg_zones %}
+            -
+          {% else %}
+            {{ snr.fvg_zones|default:"-" }}
+          {% endif %}
+        </td>
+      </tr>
+      {% endwith %}
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+</div>
+
+{% endblock %}

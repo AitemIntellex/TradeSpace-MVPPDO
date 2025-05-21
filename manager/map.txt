@@ -1,0 +1,24 @@
+manager/
+  __init__.py
+  admin.py
+  api/
+    urls.py
+    views.py
+  apps.py
+  migrations/
+    __init__.py
+  models.py
+  templates/
+    base.html
+    footer.html
+    for_all_pages.html
+    header.html
+    partials/
+      button_for_ai.html
+      header.html
+      layout.html
+      navbar.html
+      sidebar.html
+    technical_analysis.html
+  tests.py
+  views.py

@@ -30,9 +30,9 @@ def get_investing_calendar():
         event_time = row.select_one(".time").get_text(strip=True)
         event_name = row.select_one(".event").get_text(strip=True)
         country = row.select_one(".flagCur").get_text(strip=True)
-        fact_value = row.select_one(".act").get_text(strip=True) or "N/A"
-        previous_value = row.select_one(".prev").get_text(strip=True) or "N/A"
-        expected_value = row.select_one(".fore").get_text(strip=True) or "N/A"
+        fact_value = row.select_one(".act").get_text(strip=True) or "-"
+        previous_value = row.select_one(".prev").get_text(strip=True) or "-"
+        expected_value = row.select_one(".fore").get_text(strip=True) or "-"
 
         # Преобразуем время события
         try:

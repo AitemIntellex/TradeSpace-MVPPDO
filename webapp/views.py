@@ -1,35 +1,86 @@
-from django.shortcuts import render, redirect
-import talib
+# ========================================
+# Библиотеки Python
+# ========================================
+import os
+import logging
+import datetime
+from datetime import timedelta
+import calendar
+import io
+import urllib
+import base64
 
-from src.indicators.technical_indicators import (
-    calculate_fibonacci_levels,
-    calculate_pivot_points,
+# ========================================
+# Сторонние библиотеки
+# ========================================
+import MetaTrader5 as mt5
+import plotly.graph_objects as go
+import matplotlib
+import matplotlib.pyplot as plt
+import pandas as pd
+import talib
+import openai
+from dotenv import load_dotenv
+
+# ========================================
+# Django
+# ========================================
+from django.shortcuts import render, redirect
+from django.http import (
+    HttpRequest,
+    HttpResponse,
+    JsonResponse,
 )
-from src.utils.ai_analytic import analyze_with_ai, analyze_tech_data_with_ai
+from django.utils import timezone
+from django.contrib.auth import logout
+from django.core.paginator import Paginator
+from django.core.cache import cache
+from django.views.decorators.csrf import csrf_exempt
+from django.contrib import messages
+
+# ========================================
+# Локальные модули (src.*)
+# ========================================
+from src.adviser.new_technical_indicators import (
+    fetch_ohlc_data,
+    get_new_indicators_data,
+)
+from src.indicators.technical_indicators import (
+    analyze_current_price_with_fibonacci,
+    calculate_fibonacci_levels,
+    calculate_fibonacci_pivot_points,
+    calculate_fibonacci_time_zones,
+    calculate_macd,
+    calculate_ote,
+    calculate_pivot_points,
+    calculate_rsi,
+    find_nearest_levels,
+    is_price_in_ote,
+    get_indicators_data,
+)
+from src.utils.ai_analytic import (
+    analyze_with_ai,
+    analyze_tech_data_with_ai,
+    appeal_to_ai_with_historical_data,
+)
 from src.utils.mt5_utils import (
-    get_historical_account_data,
-    get_trade_history,
     initialize_mt5,
     shutdown_mt5,
+    get_historical_account_data,
+    get_trade_history,
     get_account_info,
     get_open_positions,
     get_currency_tick,
     open_market_position,
-    place_pending_order,  # Должно быть правильно импортировано
+    place_pending_order,
     get_rates_dataframe,
+    get_ohlc_extended,
+    get_trading_profit_history,
 )
-
-
 from src.utils.investing_calendar import get_investing_calendar
 from src.utils.rss_news import get_fxstreet_news
-from django.utils import timezone
-import pandas as pd
-import matplotlib
-from django.contrib import messages  # Для уведомлений о статусе операций
-import logging
-import MetaTrader5 as mt5
+
 from src.trading.trading import (
-    get_indicators_data,
     analyze_strategies_for_timeframes,
     prepare_fibonacci_levels,
     prepare_fibonacci_levels_as_fields,
@@ -42,22 +93,6 @@ from src.indicators.market_structure import (
 from src.trading.ict_strategy import ict_strategy
 from src.trading.smc_strategy import smc_strategy
 from src.trading.snr_strategy import snr_strategy
-
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt
-import io
-import urllib, base64
-from django.http import JsonResponse
-
-# Настройка логирования
-logging.basicConfig(
-    level=logging.WARNING,  # Для логирования только предупреждений и ошибок
-    format="%(asctime)s - %(levelname)s - %(message)s",
-)
-from datetime import datetime, timedelta
-import datetime, os
-
-from django.views.decorators.csrf import csrf_exempt
 from src.trading.forex_pair import (
     majors,
     metals,
@@ -66,84 +101,19 @@ from src.trading.forex_pair import (
     indices,
     commodities,
 )
-import openai
-from dotenv import load_dotenv
+from src.services.market_analysis import get_market_analysis
+from brain.optimized.optimized_indicators import generate_plotly_data
 
-# Загружаем переменные окружения из файла .env
-load_dotenv()
-openai.api_key = os.getenv("OPENAI_API_KEY")
+# ========================================
+# Модели
+# ========================================
+from polygon.models import Recommendation
 
+# что то
+from MetaTrader5 import initialize, history_deals_get, account_info
+from plotly.subplots import make_subplots
 
-from django.shortcuts import render
-
-# Настройка логирования
-logging.basicConfig(
-    level=logging.WARNING,  # Для логирования только предупреждений и ошибок
-    format="%(asctime)s - %(levelname)s - %(message)s",
-)
-
-
-from django.shortcuts import render
-from src.utils.mt5_utils import (
-    initialize_mt5,
-    shutdown_mt5,
-    get_account_info,
-    get_open_positions,
-    get_currency_tick,
-    get_rates_dataframe,
-)
-from django.utils import timezone
-import logging
-import MetaTrader5 as mt5
-import pandas as pd
-from datetime import datetime, timedelta  # Импортируем корректно
-
-# Настройка логирования
-logging.basicConfig(
-    level=logging.DEBUG,  # Для логирования всех событий, включая отладочные сообщения
-    format="%(asctime)s - %(levelname)s - %(message)s",
-)
-
-
-from datetime import datetime, timedelta
-from django.utils import timezone
-from django.shortcuts import render
-from src.utils.mt5_utils import (
-    initialize_mt5,
-    shutdown_mt5,
-    get_account_info,
-    get_open_positions,
-    get_trading_profit_history,
-    get_currency_tick,
-)
-from django.contrib.auth import logout
-
-
-def logout_view(request):
-    # Сначала сбрасываем все данные пользователя и выходим
-    logout(request)
-
-    # Затем чистим сессию
-    request.session.flush()
-
-    # Перенаправляем на страницу входа
-    return redirect("login")
-
-
-import calendar
-from datetime import datetime, timedelta
-from django.utils import timezone
-from django.shortcuts import render
-import logging
-from django.shortcuts import render
-from django.http import JsonResponse
-from src.utils.investing_calendar import get_investing_calendar  # Ваш модуль
-
-
-from datetime import datetime
-from django.http import JsonResponse
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
+logger = logging.getLogger(__name__)
 
 
 @csrf_exempt
@@ -152,13 +122,16 @@ def update_database(request):
         # Логика обновления базы данных
         try:
             # Пример обновления данных
-            update_some_data()
+            get_currency_tick()
             return JsonResponse({"status": "success", "message": "Данные обновлены."})
         except Exception as e:
             return JsonResponse({"status": "error", "message": str(e)}, status=500)
     return JsonResponse(
         {"status": "error", "message": "Некорректный запрос."}, status=400
     )
+
+
+from datetime import datetime, timedelta
 
 
 def fetch_economic_news(request):
@@ -417,76 +390,6 @@ def fundamental_analysis(request):
     return render(request, "fundamental_analysis.html", context)
 
 
-# # Страница технического анализа
-# def technical_analysis(request):
-#     # Страница технического анализа
-#     symbol = request.GET.get("symbol", "EURUSD")
-#     timeframes = define_timeframes()
-#     context = {
-#         "majors": majors,
-#         "metals": metals,
-#         "cryptocurrencies": cryptocurrencies,
-#         "stocks": stocks,
-#         "indices": indices,
-#         "commodities": commodities,
-#     }
-#     # Объединяем все списки
-#     all_symbols = majors + metals + cryptocurrencies + stocks + indices + commodities
-#     context["all_symbols"] = all_symbols
-
-#     try:
-#         initialize_mt5()  # Инициализируем MetaTrader 5
-#         try:
-#             # Получаем тик выбранной валютной пары
-#             selected_pair_tick = get_currency_tick(symbol)
-#             if selected_pair_tick is None:
-#                 raise Exception(f"Не удалось получить тик для символа {symbol}.")
-
-#             context["selected_pair_tick"] = selected_pair_tick
-
-#             # Анализ стратегий и регрессионного канала для всех таймфреймов
-#             (
-#                 indicators_by_timeframe,
-#                 ict_strategies_by_timeframe,
-#                 smc_strategies_by_timeframe,
-#                 snr_strategies_by_timeframe,
-#             ) = analyze_strategies_for_timeframes(symbol, timeframes)
-
-#             regression_channel_by_timeframe = {}
-#             for label, timeframe in timeframes.items():
-#                 regression_result = calculate_regression_channel(symbol, timeframe)
-#                 if regression_result:
-#                     regression_channel_by_timeframe[label] = regression_result
-#                 else:
-#                     logging.warning(
-#                         f"Регрессионный анализ не выполнен для {symbol} на таймфрейме {label}"
-#                     )
-
-#             # Обновляем контекст для передачи в шаблон
-#             strategies = [
-#                 {"name": "ICT Strategy", "data": ict_strategies_by_timeframe},
-#                 {"name": "SMC Strategy", "data": smc_strategies_by_timeframe},
-#                 {"name": "SNR Strategy", "data": snr_strategies_by_timeframe},
-#             ]
-
-#             context.update(
-#                 {
-#                     "indicators_by_timeframe": indicators_by_timeframe,
-#                     "strategies": strategies,
-#                     "regression_channel_by_timeframe": regression_channel_by_timeframe,
-#                 }
-#             )
-
-#         finally:
-#             shutdown_mt5()  # Отключаем MetaTrader 5
-
-#     except Exception as e:
-#         context["error"] = str(e)
-#         logging.error(f"Ошибка в technical_analysis: {e}")
-
-#     return render(request, "technical_analysis.html", context)
-
-
 def technical_analysis(request):
     # Страница технического анализа
     # Получаем валютную пару из cookie
@@ -688,12 +591,6 @@ def technical_analysis(request):
     return render(request, "technical_analysis.html", context)
 
 
-from src.trading.trading import (
-    get_indicators_data,
-    analyze_strategies_for_timeframes,
-)
-
-
 def technical_analysis_general(request):
     symbol_from_cookie = request.COOKIES.get("selected_pair", "XAUUSD")
 
@@ -739,16 +636,6 @@ def technical_analysis_general(request):
     )
 
 
-from django.shortcuts import render
-from django.http import JsonResponse
-from src.utils.mt5_utils import initialize_mt5, shutdown_mt5
-from src.indicators.technical_indicators import get_indicators_data
-from django.core.cache import cache
-import logging
-
-logger = logging.getLogger(__name__)
-
-
 def get_cached_indicators(symbol, timeframe):
     """
     Получение индикаторов с использованием кэша.
@@ -759,142 +646,6 @@ def get_cached_indicators(symbol, timeframe):
         data = get_indicators_data(symbol, timeframe)
         cache.set(cache_key, data, timeout=300)  # Кэшируем данные на 5 минут
     return data
-
-
-# Нам нужно поработать над этой страницей
-# def technical_analysis_indicators(request):
-#     """
-#     Обобщённая страница для вывода технических индикаторов и структуры рынка
-#     по всем таймфреймам одновременно (или выборочно).
-#     """
-#     open_positions = get_open_positions()
-
-#     # Get symbol from cookie or query parameters
-#     symbol = request.GET.get("symbol", request.COOKIES.get("selected_pair", "XAUUSD"))
-
-#     # Get the number of values, ensure it is an integer
-#     try:
-#         num_values_int = int(request.GET.get("num_values", "1"))
-#     except ValueError:
-#         num_values_int = 1
-
-#     timeframes = define_timeframes()  # e.g., {"1m": "M1", "5m": "M5", ...}
-
-#     context = {
-#         "selected_pair": symbol,
-#         "num_values": num_values_int,
-#     }
-
-#     # Initialize result containers
-#     structure_by_timeframe = {}
-#     indicators_by_timeframe = {}
-#     pivot_points_by_timeframe = {}
-#     market_structure_by_timeframe = {}
-#     fibonacci_by_timeframe = {}
-
-#     try:
-#         initialize_mt5()
-#         try:
-#             selected_pair_tick = get_currency_tick(symbol)
-#             if selected_pair_tick is None:
-#                 raise Exception(f"Не удалось получить тик для символа {symbol}.")
-#             context["selected_pair_tick"] = selected_pair_tick
-
-#             default_structure = {
-#                 "trend": "Нет данных",
-#                 "support": "Нет данных",
-#                 "resistance": "Нет данных",
-#                 "atr": "Нет данных",
-#             }
-#             default_indicators = {
-#                 "atr": "Нет данных",
-#                 "mfi": "Нет данных",
-#                 "cci": "Нет данных",
-#                 "stochastic": "Нет данных",
-#                 "sma": "Нет данных",
-#                 "macd_signal": "Нет данных",
-#                 "rsi": "Нет данных",
-#             }
-#             default_pivot_points = {
-#                 "pivot": "Нет данных",
-#                 "pp_resistance": "Нет данных",
-#                 "pp_support": "Нет данных",
-#             }
-#             default_fibonacci = {
-#                 "fib_levels": {},
-#                 "local_high": "Нет данных",
-#                 "local_low": "Нет данных",
-#             }
-
-#             for label, tf in timeframes.items():
-#                 instrument_data = (
-#                     create_instrument_structure(symbol, tf, bars=num_values_int)
-#                     or default_structure
-#                 )
-#                 ind_data = (
-#                     get_indicators_data(symbol, tf, num_values=num_values_int)
-#                     or default_indicators
-#                 )
-#                 pivot_points = (
-#                     calculate_pivot_points(symbol, tf, num_values_int)
-#                     or default_pivot_points
-#                 )
-#                 fibonacci_data = (
-#                     calculate_fibonacci_levels(symbol, tf, bars=500, local_bars=100)
-#                     or default_fibonacci
-#                 )
-#                 ms = identify_market_structure(symbol, tf) or default_structure
-
-#                 structure_by_timeframe[label] = instrument_data
-#                 indicators_by_timeframe[label] = ind_data
-#                 pivot_points_by_timeframe[label] = pivot_points
-#                 market_structure_by_timeframe[label] = ms
-#                 fibonacci_by_timeframe[label] = fibonacci_data
-
-#                 for label, tf in timeframes.items():
-#                     fibonacci_data = calculate_fibonacci_levels(
-#                         symbol, tf, bars=500, local_bars=100
-#                     ) or {
-#                         "fib_levels": {},
-#                         "local_high": "Нет данных",
-#                         "local_low": "Нет данных",
-#                     }
-#                     fibonacci_by_timeframe[label] = fibonacci_data
-
-#                     # Логируем результат для каждого таймфрейма
-#                     logging.info(f"Fibonacci Data for {label}: {fibonacci_data}")
-
-#         finally:
-#             shutdown_mt5()
-
-#     except Exception as e:
-#         context["error"] = str(e)
-#         logging.error(f"Ошибка в technical_analysis_general: {e}")
-
-#     context.update(
-#         {
-#             "structure_by_timeframe": structure_by_timeframe,
-#             "indicators_by_timeframe": indicators_by_timeframe,
-#             "pivot_points_by_timeframe": pivot_points_by_timeframe,
-#             "market_structure_by_timeframe": market_structure_by_timeframe,
-#             "fibonacci_by_timeframe": fibonacci_by_timeframe,  # Должно быть добавлено
-#         }
-#     )
-
-#     return render(
-#         request, "technical_analysis/technical_analysis_indicators.html", context
-#     )
-
-
-import logging
-from django.shortcuts import render
-
-# Предполагаем, что эти и другие необходимые функции и переменные где-то импортированы:
-# from .mt5_utils import (initialize_mt5, shutdown_mt5, get_currency_tick, get_open_positions, define_timeframes)
-# from .indicators.market_structure import create_instrument_structure
-# from .indicators.technical_indicators import get_indicators_data
-# from .strategies import (calculate_pivot_points, calculate_fibonacci_levels, identify_market_structure)
-# majors, metals, cryptocurrencies, stocks, indices, commodities = ...
 
 
 def get_color_for_trend(trend_value: str) -> str:
@@ -915,19 +666,22 @@ def get_color_for_trend(trend_value: str) -> str:
     return "lightgray"  # нет данных или иной вариант
 
 
+def get_trend_color(trend):
+    if trend == "uptrend" or trend == "strong_uptrend":
+        return "#d4f7dc"  # Зеленый
+    elif trend == "downtrend" or trend == "strong_downtrend":
+        return "#f7d4d4"  # Красный
+    elif trend == "range":
+        return "#ffffcc"  # Желтый
+    return "#f0f0f0"  # Серый как значение по умолчанию
+
+
 def technical_analysis_indicators(request):
     """
     Обобщённая страница для вывода технических индикаторов и структуры рынка
     по всем таймфреймам одновременно (или выборочно).
-
-    Параметры запроса:
-        symbol       - финансовый инструмент (по умолчанию XAUUSD или из cookie)
-        num_values   - сколько баров подгружаем (по умолчанию 1)
-        timeframe    - если указать конкретный (например, "1h"), будет вывод только по нему
-                       если не указано или 'ALL', то по всем таймфреймам
-        recent_count - сколько последних значений для некоторых индикаторов показать (по умолчанию 3)
     """
-    open_positions = get_open_positions()
+    open_positions = get_open_positions()  # Если нужно
 
     # 1) Получаем текущий символ (из GET, потом cookie, иначе XAUUSD)
     symbol = request.GET.get("symbol", request.COOKIES.get("selected_pair", "XAUUSD"))
@@ -938,54 +692,42 @@ def technical_analysis_indicators(request):
     except ValueError:
         num_values_int = 1
 
-    # 3) Определяем, какие таймфреймы обрабатываем:
-    #    - либо все (по умолчанию),
-    #    - либо только один, если передан timeframe в GET.
-    requested_tf = request.GET.get("timeframe", "ALL")  # например,  "1h" или "ALL"
-    all_timeframes = (
-        define_timeframes()
-    )  # e.g. {"1m": "M1", "5m": "M5", "1h": "H1", ...}
+    # 3) Какие таймфреймы обрабатываем?
+    requested_tf = request.GET.get("timeframe", "ALL")
+    all_timeframes = define_timeframes()  # Например, {"M1": "M1", "M5": "M5", ...}
     if requested_tf.upper() != "ALL" and requested_tf in all_timeframes:
-        # Оставляем только один таймфрейм
         timeframes = {requested_tf: all_timeframes[requested_tf]}
     else:
-        # Берём все
         timeframes = all_timeframes
 
-    # 4) Сколько последних значений (свечей) для некоторых индикаторов нужно вывести?
+    # 4) Сколько последних значений (recent_count) для индикаторов показать?
     try:
         recent_count = int(request.GET.get("recent_count", "3"))
     except ValueError:
         recent_count = 3
 
-    # 5) Подготовим основу для контекста
+    # Базовый контекст
     context = {
         "selected_pair": symbol,
         "num_values": num_values_int,
         "requested_timeframe": requested_tf,
         "recent_count": recent_count,
-        # Можно добавить (если нужно отобразить списки символов на странице):
-        # "majors": majors,
-        # "metals": metals,
-        # ...
     }
 
-    # 6) Готовим словари под результаты
+    # 5) Подготовка словарей-накопителей
     structure_by_timeframe = {}
     indicators_by_timeframe = {}
     pivot_points_by_timeframe = {}
     market_structure_by_timeframe = {}
     fibonacci_by_timeframe = {}
 
-    # 7) Словари со значениями по умолчанию, чтобы избежать ошибок "None"
+    # Словари со значениями по умолчанию
     default_structure = {
         "trend": "Нет данных",
-        "support": "Нет данных",
-        "resistance": "Нет данных",
-        "atr": "Нет данных",
+        "support": None,
+        "resistance": None,
     }
     default_indicators = {
-        # Зависит от того, какие индикаторы конкретно используете
         "atr": [],
         "mfi": [],
         "cci": [],
@@ -995,98 +737,104 @@ def technical_analysis_indicators(request):
         "macd": [],
         "signal": [],
         "rsi": [],
-        # ... можно дополнять
+        "ohlc": [],
+        "pivot": [],
+        "pp_resistance": [],
+        "pp_support": [],
+        "upper_band": [],
+        "lower_band": [],
+        "vwap": [],
+        # и т.д., если есть ещё
     }
     default_pivot_points = [
         {
             "pivot": None,
-            "pp_resistance": [None, None, None],
-            "pp_support": [None, None, None],
+            "pp_resistance": [None] * 3,
+            "pp_support": [None] * 3,
         }
     ]
     default_fibonacci = {
         "fib_levels": {},
-        "local_high": "Нет данных",
-        "local_low": "Нет данных",
+        "fib_ranges": {},
+        "local_high": None,
+        "local_low": None,
+        "absolute_high": None,
+        "absolute_low": None,
+        "trend": None,
     }
 
-    # 8) Подключаемся к MT5 и собираем данные
+    # 6) Подключаемся к MT5 и собираем данные
     try:
         initialize_mt5()
         try:
-            # Проверим тик по выбранному символу
+            # Проверяем тик для выбранного символа
             selected_pair_tick = get_currency_tick(symbol)
             if selected_pair_tick is None:
                 raise Exception(f"Не удалось получить тик для символа {symbol}.")
-
-            # Можно сохранить в контекст, чтобы на странице показать текущий бид/аск и т.д.
             context["selected_pair_tick"] = selected_pair_tick
 
-            # Проходимся по нужным таймфреймам
+            # Цикл по таймфреймам
             for label, tf in timeframes.items():
-                # 8.1) Общая структура инструмента
+                # 6.1) Структура инструмента (support/resistance/trend)
                 instrument_data = create_instrument_structure(
                     symbol, tf, bars=num_values_int
                 )
                 if not instrument_data:
                     instrument_data = dict(default_structure)
-                # Добавляем светофор (цвет фона) по тренду:
-                trend_str = instrument_data.get("trend", "Нет данных")
-                instrument_data["trend_color"] = get_color_for_trend(trend_str)
 
-                # 8.2) Индикаторы
+                instrument_data["trend_color"] = get_color_for_trend(
+                    instrument_data.get("trend", "Нет данных")
+                )
+
+                # 6.2) Индикаторы
                 ind_data = get_indicators_data(symbol, tf, num_values=num_values_int)
                 if not ind_data:
                     ind_data = dict(default_indicators)
-                # Если нужно сохранить только последние few значений, например recent_count
-                # для RSI, MACD, и т.д., то можно сократить списки:
-                # (Будьте аккуратны, если индикатор None или список пуст)
+
+                # Урезаем списки индикаторов до recent_count (если нужно)
                 for key, val in ind_data.items():
                     if isinstance(val, list) and len(val) > recent_count:
                         ind_data[key] = val[-recent_count:]
 
-                # 8.3) Pivot Points
+                # 6.3) Pivot Points
                 pivot_points = calculate_pivot_points(symbol, tf, num_values_int)
                 if not pivot_points:
-                    # Пивот-функция может возвращать список словарей, например, на каждый бар,
-                    # или только один словарь. Это зависит от реализации.
-                    # Допустим, вернём список со словарями.
                     pivot_points = default_pivot_points
 
-                # 8.4) Уровни Фибоначчи
-                fibonacci_data = calculate_fibonacci_levels(
+                # 6.4) Фибоначчи
+                fib_for_tf = calculate_fibonacci_levels(
                     symbol, tf, bars=500, local_bars=100
                 )
-                if not fibonacci_data:
-                    fibonacci_data = dict(default_fibonacci)
+                if not fib_for_tf:
+                    fib_for_tf = dict(default_fibonacci)
 
-                # 8.5) Простая структура рынка (market_structure)
+                # 6.5) Маркет структура (абсолютные / локальные экстремумы)
                 ms = identify_market_structure(symbol, tf)
                 if not ms:
                     ms = dict(default_structure)
-                ms_trend_str = ms.get("trend", "Нет данных")
-                ms["trend_color"] = get_color_for_trend(ms_trend_str)
 
-                # 8.6) Сохраняем всё в соответствующие словари:
+                ms["trend_color"] = get_color_for_trend(ms.get("trend", "Нет данных"))
+                # Добавим экстремумы (если identify_market_structure их возвращает)
+                ms["absolute_high"] = ms.get("absolute_high", None)
+                ms["absolute_low"] = ms.get("absolute_low", None)
+                ms["local_high"] = ms.get("local_high", None)
+                ms["local_low"] = ms.get("local_low", None)
+
+                # Сохраняем данные в словари
                 structure_by_timeframe[label] = instrument_data
                 indicators_by_timeframe[label] = ind_data
                 pivot_points_by_timeframe[label] = pivot_points
-                fibonacci_by_timeframe[label] = fibonacci_data
+                fibonacci_by_timeframe[label] = fib_for_tf
                 market_structure_by_timeframe[label] = ms
-
-                logging.info(f"Timeframe: {label} => Instrument: {instrument_data}")
-                logging.info(f"Timeframe: {label} => Indicators: {ind_data}")
-                logging.info(f"Timeframe: {label} => Pivots: {pivot_points}")
-                logging.info(f"Timeframe: {label} => Fib: {fibonacci_data}")
-                logging.info(f"Timeframe: {label} => MS: {ms}")
 
         finally:
             shutdown_mt5()
+
     except Exception as e:
         context["error"] = str(e)
         logging.error(f"Ошибка в technical_analysis_indicators: {e}")
 
-    # 9) Дополняем контекст собранными результатами
+    # 7) Дополняем контекст
     context.update(
         {
             "structure_by_timeframe": structure_by_timeframe,
@@ -1097,7 +845,59 @@ def technical_analysis_indicators(request):
         }
     )
 
-    # 10) Рендерим шаблон
+    # 8) Формируем итоговый merged_data_by_timeframe — удобная структура «всё в одном»
+    merged_data_by_timeframe = []
+    for timeframe in indicators_by_timeframe:
+        # Берём подготовленные данные
+        ind = indicators_by_timeframe.get(timeframe, {})
+        instr = structure_by_timeframe.get(timeframe, {})
+        ms = market_structure_by_timeframe.get(timeframe, {})
+        fib = fibonacci_by_timeframe.get(timeframe, {})
+
+        # Пример дополнительных вычислений
+        fib_pivot_levels = {}
+        if fib:
+            fib_pivot_levels = (
+                calculate_fibonacci_pivot_points(
+                    fib.get("local_high", 0),
+                    fib.get("local_low", 0),
+                    fib.get("absolute_high", 0),
+                )
+                or {}
+            )
+
+        nearest_levels = {}
+        if fib_pivot_levels and "current_price" in fib:
+            nearest_levels = (
+                find_nearest_levels(fib_pivot_levels, fib["current_price"]) or {}
+            )
+
+        time_zones = {}
+        if fib.get("start_time") and fib.get("end_time"):
+            time_zones = (
+                calculate_fibonacci_time_zones(fib["start_time"], fib["end_time"]) or {}
+            )
+
+        # Собираем в единый dict
+        ote_data = calculate_ote(symbol, tf, trend="up")
+        fibonacci_data = fibonacci_by_timeframe.get(tf, {})
+        merged_data_by_timeframe.append(
+            {
+                "timeframe": timeframe,
+                "indicators": ind,
+                "structure": instr,  # create_instrument_structure
+                "market_structure": ms,  # identify_market_structure
+                "fibonacci": fib,  # calculate_fibonacci_levels
+                "fib_pivot_levels": fib_pivot_levels,
+                "nearest_levels": nearest_levels,
+                "time_zones": time_zones,
+                "ote": ote_data,  # Добавляем данные OTE
+            }
+        )
+
+    context["merged_data_by_timeframe"] = merged_data_by_timeframe
+
+    # 9) Рендеринг шаблона
     return render(
         request, "technical_analysis/technical_analysis_indicators.html", context
     )
@@ -1121,32 +921,1013 @@ def api_instrument_structure(request):
     return JsonResponse(data, safe=False)
 
 
-def technical_analysis_strategies(request):
-    context = {
-        "strategies_process_by_timeframe": ...,
-    }
-    return render(
-        request, "technical_analysis/technical_analysis_strategies.html", context
-    )
+def technical_analysis_strategies(request: HttpRequest) -> HttpResponse:
+    """
+    Вьюха для отображения стратегий и индикаторов технического анализа.
+    """
+    try:
+        # Инициализация MetaTrader 5
+        initialize_mt5()
+
+        # Получаем символ из cookie или GET-запроса
+        symbol_from_cookie = request.COOKIES.get("selected_pair", "XAUUSD")
+        symbol = request.GET.get("symbol", symbol_from_cookie)
+
+        # Определяем все таймфреймы
+        timeframes = (
+            define_timeframes()
+        )  # {'1m': mt5.TIMEFRAME_M1, '5m': mt5.TIMEFRAME_M5, ...}
+
+        # Получаем выбранный таймфрейм из GET-запроса или используем 15m по умолчанию
+        timeframe_label = request.GET.get("timeframe", "15m")
+        timeframe = timeframes.get(timeframe_label, mt5.TIMEFRAME_M5)
+
+        # Сохраняем выбранный таймфрейм в cookie (опционально)
+        response = render(
+            request,
+            "technical_analysis/technical_analysis_strategies.html",
+            context={
+                "symbol": symbol,
+                "timeframes": timeframes,
+                "timeframe_label": timeframe_label,
+                # Добавляем остальные данные, как в текущем коде
+            },
+        )
+
+        # Количество свечей для анализа
+        candles = int(request.GET.get("candles", 5))  # По умолчанию 5 свечей
+
+        # Получение данных индикаторов
+        indicators = get_new_indicators_data(symbol, timeframe, num_values=candles)
+
+        # Вычисление уровней Pivot Points
+        pivot_points = calculate_pivot_points(symbol, timeframe, num_values=candles)
+
+        # Анализ стратегий
+        ict_data = ict_strategy(symbol, timeframe)
+        smc_data = smc_strategy(symbol, timeframe)
+        snr_data = snr_strategy(symbol, timeframe)
+
+        # Расчет уровней Фибоначчи
+        fib_data = prepare_fibonacci_levels(symbol, timeframe)
+        # Создание структуры инструмента
+        instrument_structure = create_instrument_structure(symbol, timeframe)
+        regression_channel = calculate_regression_channel(symbol, timeframe)
+        # Расчет ближайших уровней поддержки и сопротивления
+        current_price = instrument_structure.get("current_price")
+        nearest_levels = find_nearest_levels(fib_data, current_price)
+        fib_analysis = analyze_current_price_with_fibonacci(
+            high=instrument_structure["ohlc"][-1]["high"],  # Последний максимум
+            low=instrument_structure["ohlc"][-1]["low"],  # Последний минимум
+            close=instrument_structure["ohlc"][-1]["close"],  # Цена закрытия
+            current_price=instrument_structure["current_price"],  # Текущая цена
+            start_time=instrument_structure["ohlc"][0]["time"],  # Начало анализа
+            end_time=instrument_structure["ohlc"][-1]["time"],  # Конец анализа
+        )
+        # Расчет OTE
+        ote_analysis = calculate_ote(
+            symbol=symbol,
+            timeframe=timeframe,
+            trend=instrument_structure["trend"],
+            bars=500,
+            local_bars=128,
+        )
+
+        # Проверка, находится ли текущая цена в зоне OTE
+        is_in_ote = (
+            is_price_in_ote(
+                price=instrument_structure["current_price"],
+                ote_levels=ote_analysis["ote_levels"],
+            )
+            if ote_analysis
+            else False
+        )
+
+        # Приводим Timestamp к строке
+        for bar in instrument_structure["ohlc"]:
+            bar["time"] = bar["time"].isoformat()
+
+        # Сериализуем вручную
+        ohlc_json = json.dumps(instrument_structure["ohlc"])
+
+        # Подготовка контекста
+        context = {
+            "symbol": symbol,
+            "timeframe_label": timeframe_label,
+            "candles": candles,
+            "indicators": indicators,
+            "pivot_points": pivot_points,
+            "ict_strategy": ict_data,
+            "smc_strategy": smc_data,
+            "snr_strategy": snr_data,
+            "fibonacci_levels": fib_data,
+            "instrument_structure": instrument_structure,
+            "regression_channel": regression_channel,
+            "nearest_levels": nearest_levels,  # Добавляем ближайшие уровни
+            "fib_analysis": fib_analysis,
+            "ote_analysis": ote_analysis,
+            "is_in_ote": is_in_ote,
+            "ohlc_data": instrument_structure["ohlc"],  # список OHLC
+            "ohlc_json": ohlc_json,
+        }
+
+        # Возвращаем JSON для AJAX-запросов
+        if request.headers.get("x-requested-with") == "XMLHttpRequest":
+            return JsonResponse(context)
+
+        # Рендерим HTML-шаблон
+        response.set_cookie("selected_timeframe", timeframe_label)
+        return render(
+            request, "technical_analysis/technical_analysis_strategies.html", context
+        )
+
+    except Exception as e:
+        logging.error(f"Ошибка в technical_analysis_strategies: {e}")
+
+        return JsonResponse({"error": str(e)}, status=500)
+        return response
+
+    finally:
+        # Завершаем сессию MetaTrader 5
+        shutdown_mt5()
+
+
+def technical_analysis_tas(request: HttpRequest) -> HttpResponse:
+
+    try:
+        # Инициализация MetaTrader 5
+        initialize_mt5()
+
+        # Получаем символ из cookie или GET-запроса
+        # 1) Определяем symbol, timeframe
+        symbol_from_cookie = request.COOKIES.get("selected_pair", "XAUUSD")
+        symbol = request.GET.get("symbol", symbol_from_cookie)
+
+        timeframes = define_timeframes()
+        selected_timeframe = request.GET.get("timeframe", "15m")
+        timeframe = timeframes.get(selected_timeframe, mt5.TIMEFRAME_M15)
+        selected_candles = int(request.GET.get("candles", 5))  # По умолчанию 5 свечей
+        candles = selected_candles
+
+        # Получение данных индикаторов
+        indicators = get_new_indicators_data(symbol, timeframe, num_values=candles)
+
+        # Вычисление уровней Pivot Points
+        pivot_points = calculate_pivot_points(symbol, timeframe, num_values=candles)
+
+        # Анализ стратегий
+        ict_data = ict_strategy(symbol, timeframe)
+        smc_data = smc_strategy(symbol, timeframe)
+        snr_data = snr_strategy(symbol, timeframe)
+
+        # Расчет уровней Фибоначчи
+        fib_data = prepare_fibonacci_levels(symbol, timeframe)
+        # Создание структуры инструмента
+        instrument_structure = create_instrument_structure(symbol, timeframe)
+        regression_channel = calculate_regression_channel(symbol, timeframe)
+        # Расчет ближайших уровней поддержки и сопротивления
+        current_price = instrument_structure.get("current_price")
+        nearest_levels = find_nearest_levels(fib_data, current_price)
+        fib_analysis = analyze_current_price_with_fibonacci(
+            high=instrument_structure["ohlc"][-1]["high"],  # Последний максимум
+            low=instrument_structure["ohlc"][-1]["low"],  # Последний минимум
+            close=instrument_structure["ohlc"][-1]["close"],  # Цена закрытия
+            current_price=instrument_structure["current_price"],  # Текущая цена
+            start_time=instrument_structure["ohlc"][0]["time"],  # Начало анализа
+            end_time=instrument_structure["ohlc"][-1]["time"],  # Конец анализа
+        )
+        # Расчет OTE
+        ote_analysis = calculate_ote(
+            symbol=symbol,
+            timeframe=timeframe,
+            trend=instrument_structure["trend"],
+            bars=500,
+            local_bars=128,
+        )
+
+        # Проверка, находится ли текущая цена в зоне OTE
+        is_in_ote = (
+            is_price_in_ote(
+                price=instrument_structure["current_price"],
+                ote_levels=ote_analysis["ote_levels"],
+            )
+            if ote_analysis
+            else False
+        )
+
+        # Приводим Timestamp к строке
+        for bar in instrument_structure["ohlc"]:
+            bar["time"] = bar["time"].isoformat()
+
+        # Сериализуем вручную
+        ohlc_json = json.dumps(instrument_structure["ohlc"])
+
+        # Подготовка контекста
+        context = {
+            "symbol": symbol,
+            "timeframes": list(timeframes.keys()),
+            "selected_timeframe": selected_timeframe,
+            "selected_candles": selected_candles,
+            "indicators": indicators,
+            "pivot_points": pivot_points,
+            "ict_strategy": ict_data,
+            "smc_strategy": smc_data,
+            "snr_strategy": snr_data,
+            "fibonacci_levels": fib_data,
+            "instrument_structure": instrument_structure,
+            "regression_channel": regression_channel,
+            "nearest_levels": nearest_levels,  # Добавляем ближайшие уровни
+            "fib_analysis": fib_analysis,
+            "ote_analysis": ote_analysis,
+            "is_in_ote": is_in_ote,
+            "ohlc_data": instrument_structure["ohlc"],  # список OHLC
+            "ohlc_json": ohlc_json,
+        }
+
+        # Возвращаем JSON для AJAX-запросов
+        # Проверяем тип запроса
+        if request.headers.get("x-requested-with") == "XMLHttpRequest":
+            return JsonResponse(context)
+
+        # 5) Обычный HTML-ответ
+        response = render(request, "technical_analysis/tas1.html", context)
+        response.set_cookie("selected_timeframe", define_timeframes)
+        return response
+
+    except Exception as e:
+        logging.error(f"Ошибка ...: {e}")
+        return JsonResponse({"error": str(e)}, status=500)
+
+    finally:
+        shutdown_mt5()
+
+
+def technical_analysis_tass(request: HttpRequest) -> HttpResponse:
+    try:
+        # Инициализация MetaTrader 5
+        initialize_mt5()
+
+        # Получаем символ из cookie или GET-запроса
+        # 1) Определяем symbol, timeframe
+        symbol_from_cookie = request.COOKIES.get("selected_pair", "XAUUSD")
+        symbol = request.GET.get("symbol", symbol_from_cookie)
+
+        timeframes = define_timeframes()
+        selected_timeframe = request.GET.get("timeframe", "15m")
+        timeframe = timeframes.get(selected_timeframe, mt5.TIMEFRAME_M15)
+        selected_candles = int(request.GET.get("candles", 5))  # По умолчанию 5 свечей
+        candles = selected_candles
+
+        # Получение данных индикаторов
+        indicators = get_new_indicators_data(symbol, timeframe, num_values=candles)
+
+        # Вычисление уровней Pivot Points
+        pivot_points = calculate_pivot_points(symbol, timeframe, num_values=candles)
+
+        # Анализ стратегий
+        ict_data = ict_strategy(symbol, timeframe)
+        smc_data = smc_strategy(symbol, timeframe)
+        snr_data = snr_strategy(symbol, timeframe)
+
+        # Расчет уровней Фибоначчи
+        fib_data = prepare_fibonacci_levels(symbol, timeframe)
+        # Создание структуры инструмента
+        instrument_structure = create_instrument_structure(symbol, timeframe)
+        regression_channel = calculate_regression_channel(symbol, timeframe)
+        # Расчет ближайших уровней поддержки и сопротивления
+        current_price = instrument_structure.get("current_price")
+        nearest_levels = find_nearest_levels(fib_data, current_price)
+        fib_analysis = analyze_current_price_with_fibonacci(
+            high=instrument_structure["ohlc"][-1]["high"],  # Последний максимум
+            low=instrument_structure["ohlc"][-1]["low"],  # Последний минимум
+            close=instrument_structure["ohlc"][-1]["close"],  # Цена закрытия
+            current_price=instrument_structure["current_price"],  # Текущая цена
+            start_time=instrument_structure["ohlc"][0]["time"],  # Начало анализа
+            end_time=instrument_structure["ohlc"][-1]["time"],  # Конец анализа
+        )
+        # Расчет OTE
+        ote_analysis = calculate_ote(
+            symbol=symbol,
+            timeframe=timeframe,
+            trend=instrument_structure["trend"],
+            bars=500,
+            local_bars=128,
+        )
+
+        # Проверка, находится ли текущая цена в зоне OTE
+        is_in_ote = (
+            is_price_in_ote(
+                price=instrument_structure["current_price"],
+                ote_levels=ote_analysis["ote_levels"],
+            )
+            if ote_analysis
+            else False
+        )
+
+        # Приводим Timestamp к строке
+        for bar in instrument_structure["ohlc"]:
+            bar["time"] = bar["time"].isoformat()
+
+        # Сериализуем вручную
+        ohlc_json = json.dumps(instrument_structure["ohlc"])
+
+        # Подготовка контекста
+        context = {
+            "symbol": symbol,
+            "timeframes": list(timeframes.keys()),
+            "selected_timeframe": selected_timeframe,
+            "selected_candles": selected_candles,
+            "indicators": indicators,
+            "pivot_points": pivot_points,
+            "ict_strategy": ict_data,
+            "smc_strategy": smc_data,
+            "snr_strategy": snr_data,
+            "fibonacci_levels": fib_data,
+            "instrument_structure": instrument_structure,
+            "regression_channel": regression_channel,
+            "nearest_levels": nearest_levels,  # Добавляем ближайшие уровни
+            "fib_analysis": fib_analysis,
+            "ote_analysis": ote_analysis,
+            "is_in_ote": is_in_ote,
+            "ohlc_data": instrument_structure["ohlc"],  # список OHLC
+            "ohlc_json": ohlc_json,
+        }
+
+        # Возвращаем JSON для AJAX-запросов
+        # Проверяем тип запроса
+        if request.headers.get("x-requested-with") == "XMLHttpRequest":
+            return JsonResponse(context)
+
+        # 5) Обычный HTML-ответ
+        response = render(request, "technical_analysis/tas2.html", context)
+        response.set_cookie("selected_timeframe", define_timeframes)
+        return response
+
+    except Exception as e:
+        logging.error(f"Ошибка ...: {e}")
+        return JsonResponse({"error": str(e)}, status=500)
+
+    finally:
+        shutdown_mt5()
+
+
+def focused_technical_analysis(request: HttpRequest) -> HttpResponse:
+    try:
+        # Инициализация MetaTrader 5
+        initialize_mt5()
+
+        # Получаем символ из cookie или GET-запроса
+        # 1) Определяем symbol, timeframe
+        symbol_from_cookie = request.COOKIES.get("selected_pair", "XAUUSD")
+        symbol = request.GET.get("symbol", symbol_from_cookie)
+
+        timeframes = define_timeframes()
+        selected_timeframe = request.GET.get("timeframe", "15m")
+        timeframe = timeframes.get(selected_timeframe, mt5.TIMEFRAME_M15)
+        selected_candles = int(request.GET.get("candles", 5))  # По умолчанию 5 свечей
+        candles = selected_candles
+
+        # Получение данных индикаторов
+        indicators = get_new_indicators_data(symbol, timeframe, num_values=candles)
+
+        # Вычисление уровней Pivot Points
+        pivot_points = calculate_pivot_points(symbol, timeframe, num_values=candles)
+
+        # Анализ стратегий
+        ict_data = ict_strategy(symbol, timeframe)
+        smc_data = smc_strategy(symbol, timeframe)
+        snr_data = snr_strategy(symbol, timeframe)
+
+        # Расчет уровней Фибоначчи
+        fib_data = prepare_fibonacci_levels(symbol, timeframe)
+        # Создание структуры инструмента
+        instrument_structure = create_instrument_structure(symbol, timeframe)
+        regression_channel = calculate_regression_channel(symbol, timeframe)
+        # Расчет ближайших уровней поддержки и сопротивления
+        current_price = instrument_structure.get("current_price")
+        nearest_levels = find_nearest_levels(fib_data, current_price)
+        fib_analysis = analyze_current_price_with_fibonacci(
+            high=instrument_structure["ohlc"][-1]["high"],  # Последний максимум
+            low=instrument_structure["ohlc"][-1]["low"],  # Последний минимум
+            close=instrument_structure["ohlc"][-1]["close"],  # Цена закрытия
+            current_price=instrument_structure["current_price"],  # Текущая цена
+            start_time=instrument_structure["ohlc"][0]["time"],  # Начало анализа
+            end_time=instrument_structure["ohlc"][-1]["time"],  # Конец анализа
+        )
+        # Расчет OTE
+        ote_analysis = calculate_ote(
+            symbol=symbol,
+            timeframe=timeframe,
+            trend=instrument_structure["trend"],
+            bars=500,
+            local_bars=128,
+        )
+
+        # Проверка, находится ли текущая цена в зоне OTE
+        is_in_ote = (
+            is_price_in_ote(
+                price=instrument_structure["current_price"],
+                ote_levels=ote_analysis["ote_levels"],
+            )
+            if ote_analysis
+            else False
+        )
+
+        # Приводим Timestamp к строке
+        for bar in instrument_structure["ohlc"]:
+            bar["time"] = bar["time"].isoformat()
+
+        # Сериализуем вручную
+        ohlc_json = json.dumps(instrument_structure["ohlc"])
+        indicators_json = json.dumps(indicators)  # Добавляем сериализацию индикаторов
+        fibonacci_levels_json = json.dumps(fib_data)  # Сериализация уровней Фибоначчи
+
+        # Подготовка контекста
+        context = {
+            "symbol": symbol,
+            "timeframes": list(timeframes.keys()),
+            "selected_timeframe": selected_timeframe,
+            "selected_candles": selected_candles,
+            "indicators": indicators,
+            "indicators_json": indicators_json,  # Добавляем в контекст
+            "fibonacci_levels_json": fibonacci_levels_json,  # Передаём сериализованные уровни Фибоначчи
+            "pivot_points": pivot_points,
+            "ict_strategy": ict_data,
+            "smc_strategy": smc_data,
+            "snr_strategy": snr_data,
+            "fibonacci_levels": fib_data,
+            "instrument_structure": instrument_structure,
+            "regression_channel": regression_channel,
+            "nearest_levels": nearest_levels,  # Добавляем ближайшие уровни
+            "fib_analysis": fib_analysis,
+            "ote_analysis": ote_analysis,
+            "is_in_ote": is_in_ote,
+            "ohlc_data": instrument_structure["ohlc"],  # список OHLC
+            "ohlc_json": ohlc_json,
+        }
+
+        # Возвращаем JSON для AJAX-запросов
+        # Проверяем тип запроса
+        if request.headers.get("x-requested-with") == "XMLHttpRequest":
+            return JsonResponse(context)
+
+        # 5) Обычный HTML-ответ
+        response = render(request, "technical_analysis/focused_tas.html", context)
+        response.set_cookie("selected_timeframe", define_timeframes)
+        return response
+
+    except Exception as e:
+        logging.info(f"pivot_points: {pivot_points}")
+        logging.info(f"fib_data: {fib_data}")
+        logging.info(f"ote_analysis: {ote_analysis}")
+        logging.info(f"indicators: {indicators}")
+        logging.error(f"Ошибка ...: {e}")
+        return JsonResponse({"error": str(e)}, status=500)
+
+    finally:
+        shutdown_mt5()
+
+
+def price_action_with_indicators(request: HttpRequest) -> HttpResponse:
+    try:
+        # Инициализация MetaTrader 5
+        initialize_mt5()
+
+        # Получаем символ из cookie или GET-запроса
+        # 1) Определяем symbol, timeframe
+        symbol_from_cookie = request.COOKIES.get("selected_pair", "XAUUSD")
+        symbol = request.GET.get("symbol", symbol_from_cookie)
+
+        timeframes = define_timeframes()
+        selected_timeframe = request.GET.get("timeframe", "15m")
+        timeframe = timeframes.get(selected_timeframe, mt5.TIMEFRAME_M15)
+        selected_candles = int(request.GET.get("candles", 5))  # По умолчанию 5 свечей
+        candles = selected_candles
+
+        # Получение данных индикаторов
+        indicators = get_new_indicators_data(symbol, timeframe, num_values=candles)
+
+        # Вычисление уровней Pivot Points
+        pivot_points = calculate_pivot_points(symbol, timeframe, num_values=candles)
+
+        # Анализ стратегий
+        ict_data = ict_strategy(symbol, timeframe)
+        smc_data = smc_strategy(symbol, timeframe)
+        snr_data = snr_strategy(symbol, timeframe)
+
+        # Расчет уровней Фибоначчи
+        fib_data = prepare_fibonacci_levels(symbol, timeframe)
+        # Создание структуры инструмента
+        instrument_structure = create_instrument_structure(symbol, timeframe)
+        regression_channel = calculate_regression_channel(symbol, timeframe)
+        # Расчет ближайших уровней поддержки и сопротивления
+        current_price = instrument_structure.get("current_price")
+        nearest_levels = find_nearest_levels(fib_data, current_price)
+        fib_analysis = analyze_current_price_with_fibonacci(
+            high=instrument_structure["ohlc"][-1]["high"],  # Последний максимум
+            low=instrument_structure["ohlc"][-1]["low"],  # Последний минимум
+            close=instrument_structure["ohlc"][-1]["close"],  # Цена закрытия
+            current_price=instrument_structure["current_price"],  # Текущая цена
+            start_time=instrument_structure["ohlc"][0]["time"],  # Начало анализа
+            end_time=instrument_structure["ohlc"][-1]["time"],  # Конец анализа
+        )
+        # Расчет OTE
+        ote_analysis = calculate_ote(
+            symbol=symbol,
+            timeframe=timeframe,
+            trend=instrument_structure["trend"],
+            bars=500,
+            local_bars=128,
+        )
+
+        # Проверка, находится ли текущая цена в зоне OTE
+        is_in_ote = (
+            is_price_in_ote(
+                price=instrument_structure["current_price"],
+                ote_levels=ote_analysis["ote_levels"],
+            )
+            if ote_analysis
+            else False
+        )
+
+        # Приводим Timestamp к строке
+        for bar in instrument_structure["ohlc"]:
+            bar["time"] = bar["time"].isoformat()
+
+        # Сериализуем вручную
+        ohlc_json = json.dumps(instrument_structure["ohlc"])
+        indicators_json = json.dumps(indicators)  # Добавляем сериализацию индикаторов
+        fibonacci_levels_json = json.dumps(fib_data)  # Сериализация уровней Фибоначчи
+
+        # Подготовка контекста
+        context = {
+            "symbol": symbol,
+            "timeframes": list(timeframes.keys()),
+            "selected_timeframe": selected_timeframe,
+            "selected_candles": selected_candles,
+            "indicators": indicators,
+            "indicators_json": indicators_json,  # Добавляем в контекст
+            "fibonacci_levels_json": fibonacci_levels_json,  # Передаём сериализованные уровни Фибоначчи
+            "pivot_points": pivot_points,
+            "ict_strategy": ict_data,
+            "smc_strategy": smc_data,
+            "snr_strategy": snr_data,
+            "fibonacci_levels": fib_data,
+            "instrument_structure": instrument_structure,
+            "regression_channel": regression_channel,
+            "nearest_levels": nearest_levels,  # Добавляем ближайшие уровни
+            "fib_analysis": fib_analysis,
+            "ote_analysis": ote_analysis,
+            "is_in_ote": is_in_ote,
+            "ohlc_data": instrument_structure["ohlc"],  # список OHLC
+            "ohlc_json": ohlc_json,
+        }
+
+        # Возвращаем JSON для AJAX-запросов
+        # Проверяем тип запроса
+        if request.headers.get("x-requested-with") == "XMLHttpRequest":
+            return JsonResponse(context)
+
+        # 5) Обычный HTML-ответ
+        response = render(request, "technical_analysis/price-action.html", context)
+        response.set_cookie("selected_timeframe", define_timeframes)
+        return response
+
+    except Exception as e:
+        logging.info(f"pivot_points: {pivot_points}")
+        logging.info(f"fib_data: {fib_data}")
+        logging.info(f"ote_analysis: {ote_analysis}")
+        logging.info(f"indicators: {indicators}")
+        logging.error(f"Ошибка ...: {e}")
+        return JsonResponse({"error": str(e)}, status=500)
+
+    finally:
+        shutdown_mt5()
+
+
+from django.http import HttpRequest, HttpResponse, JsonResponse
+from django.shortcuts import render
+import logging
+import json
+from typing import Dict
+
+
+def technical_analysis_all_timeframes(request: HttpRequest) -> HttpResponse:
+    """
+    Вьюха для отображения индикаторов и стратегий по всем таймфреймам.
+    """
+    try:
+        # Инициализация MetaTrader 5
+        initialize_mt5()
+
+        # Получаем символ из cookie или GET-запроса
+        symbol_from_cookie = request.COOKIES.get("selected_pair", "XAUUSD")
+        symbol = request.GET.get("symbol", symbol_from_cookie)
+
+        # Определяем все таймфреймы
+        timeframes = define_timeframes()
+
+        # Количество свечей для анализа (можно задать общее значение или разные для таймфреймов)
+        candles = int(request.GET.get("candles", 5))  # По умолчанию 5 свечей
+
+        # Подготовка данных для каждого таймфрейма
+        analysis_data = {}
+        for label, tf in timeframes.items():
+            try:
+                # Получение данных индикаторов
+                indicators = get_new_indicators_data(symbol, tf, num_values=candles)
+
+                # Вычисление уровней Pivot Points
+                pivot_points = calculate_pivot_points(symbol, tf, num_values=candles)
+
+                # Анализ стратегий
+                ict_data = ict_strategy(symbol, tf)
+                smc_data = smc_strategy(symbol, tf)
+                snr_data = snr_strategy(symbol, tf)
+
+                # Расчет уровней Фибоначчи
+                fib_data = prepare_fibonacci_levels(symbol, tf)
+                # Создание структуры инструмента
+                instrument_structure = create_instrument_structure(symbol, tf)
+                regression_channel = calculate_regression_channel(symbol, tf)
+
+                # Расчет ближайших уровней поддержки и сопротивления
+                current_price = instrument_structure.get("current_price")
+                nearest_levels = find_nearest_levels(fib_data, current_price)
+                fib_analysis = analyze_current_price_with_fibonacci(
+                    high=instrument_structure["ohlc"][-1]["high"],  # Последний максимум
+                    low=instrument_structure["ohlc"][-1]["low"],  # Последний минимум
+                    close=instrument_structure["ohlc"][-1]["close"],  # Цена закрытия
+                    current_price=instrument_structure["current_price"],  # Текущая цена
+                    start_time=instrument_structure["ohlc"][0][
+                        "time"
+                    ],  # Начало анализа
+                    end_time=instrument_structure["ohlc"][-1]["time"],  # Конец анализа
+                )
+                # Расчет OTE
+                ote_analysis = calculate_ote(
+                    symbol=symbol,
+                    timeframe=tf,
+                    trend=instrument_structure["trend"],
+                    bars=500,
+                    local_bars=128,
+                )
+
+                # Проверка, находится ли текущая цена в зоне OTE
+                is_in_ote = (
+                    is_price_in_ote(
+                        price=instrument_structure["current_price"],
+                        ote_levels=ote_analysis["ote_levels"],
+                    )
+                    if ote_analysis
+                    else False
+                )
+
+                # Приводим Timestamp к строке
+                for bar in instrument_structure["ohlc"]:
+                    bar["time"] = bar["time"].isoformat()
+
+                # Сохранение данных для текущего таймфрейма
+                analysis_data[label] = {
+                    "indicators": indicators,
+                    "pivot_points": pivot_points,
+                    "ict_strategy": ict_data,
+                    "smc_strategy": smc_data,
+                    "snr_strategy": snr_data,
+                    "fibonacci_levels": fib_data,
+                    "instrument_structure": instrument_structure,
+                    "regression_channel": regression_channel,
+                    "nearest_levels": nearest_levels,
+                    "fib_analysis": fib_analysis,
+                    "ote_analysis": ote_analysis,
+                    "is_in_ote": is_in_ote,
+                }
+            except Exception as e:
+                logging.error(f"Ошибка обработки таймфрейма {label}: {e}")
+
+        # Подготовка контекста
+        context = {
+            "symbol": symbol,
+            "timeframes": analysis_data,
+        }
+
+        # Возвращаем JSON для AJAX-запросов
+        if request.headers.get("x-requested-with") == "XMLHttpRequest":
+            return JsonResponse(context)
+
+        # Рендерим HTML-шаблон
+        return render(
+            request,
+            "technical_analysis/technical_analysis_all_timeframes.html",
+            context,
+        )
+
+    except Exception as e:
+        logging.error(f"Ошибка в technical_analysis_all_timeframes: {e}")
+        return JsonResponse({"error": str(e)}, status=500)
+
+    finally:
+        # Завершаем сессию MetaTrader 5
+        shutdown_mt5()
 
 
 def technical_analysis_smc(request):
-    # Если нужно что-то специфичное для SMC
-    context = {}
-    return render(request, "technical_analysis/technical_analysis_smc.html", context)
+
+    try:
+        initialize_mt5()
+
+        # **1) Получаем символ, ТФ и количество свечей (строго по структуре)**
+        symbol_from_cookie = request.COOKIES.get("selected_pair", "XAUUSD")
+        symbol = request.GET.get("symbol", symbol_from_cookie)
+
+        timeframes = define_timeframes()
+        selected_timeframe = request.GET.get("timeframe", "15m")
+        timeframe = timeframes.get(selected_timeframe, mt5.TIMEFRAME_M15)
+        selected_candles = int(request.GET.get("candles", 5))  # По умолчанию 5 свечей
+        candles = selected_candles
+
+        # **2) Получаем данные (индикаторы, уровни, структуры)**
+        indicators = get_new_indicators_data(symbol, timeframe, num_values=candles)
+        pivot_points = calculate_pivot_points(symbol, timeframe, num_values=candles)
+        fib_data = prepare_fibonacci_levels(symbol, timeframe)
+        instrument_structure = create_instrument_structure(symbol, timeframe)
+        regression_channel = calculate_regression_channel(symbol, timeframe)
+        nearest_levels = find_nearest_levels(
+            fib_data, instrument_structure["current_price"]
+        )
+
+        price_indicators = {
+            k: v
+            for k, v in indicators.items()
+            if k in ["sma", "upper_band", "lower_band", "vwap"]
+        }
+        oscillator_indicators = {
+            k: v
+            for k, v in indicators.items()
+            if k in ["rsi", "macd", "stochastic_k", "stochastic_d", "cci", "mfi"]
+        }
+
+        # **3) Формируем JSON для графика**
+        for bar in instrument_structure["ohlc"]:
+            bar["time"] = bar["time"].isoformat()  # Приводим timestamp к строке
+
+        context = {
+            "symbol": symbol,
+            "timeframes": list(timeframes.keys()),
+            "selected_timeframe": selected_timeframe,
+            "selected_candles": selected_candles,
+            "ohlc_data": instrument_structure["ohlc"],
+            "price_indicators": price_indicators,
+            "oscillator_indicators": oscillator_indicators,
+            "indicators": indicators,
+            "pivot_points": pivot_points,
+            "fibonacci_levels": fib_data,
+            "nearest_levels": nearest_levels,
+            "regression_channel": regression_channel,
+        }
+
+        # **4) Если AJAX-запрос — отдаём JSON**
+        if request.headers.get("x-requested-with") == "XMLHttpRequest":
+            return JsonResponse(context)
+
+        # **5) Обычный HTML-рендер**
+        return render(
+            request, "technical_analysis/technical_analysis_smc.html", context
+        )
+
+    except Exception as e:
+        logging.error(f"Ошибка: {e}")
+        return JsonResponse({"error": str(e)}, status=500)
+
+    finally:
+        shutdown_mt5()
 
 
-def technical_analysis_ict(request):
-    context = {}
-    return render(request, "technical_analysis/technical_analysis_ict.html", context)
+def technical_analysis_ict(request: HttpRequest) -> HttpResponse:
+    """
+    Вьюха для отображения стратегий и индикаторов технического анализа.
+    """
+    try:
+        # Инициализация MetaTrader 5
+        initialize_mt5()
+
+        # Получаем символ из cookie или GET-запроса
+        symbol_from_cookie = request.COOKIES.get("selected_pair", "XAUUSD")
+        symbol = request.GET.get("symbol", symbol_from_cookie)
+
+        # Определяем таймфрейм
+        timeframes = define_timeframes()
+        timeframe_label = request.GET.get("timeframe", "1h").lower()
+        timeframe = timeframes.get(timeframe_label)
+        if not timeframe:
+            raise ValueError(f"Некорректный таймфрейм: {timeframe_label}")
+
+        # Количество свечей для анализа
+        candles = int(request.GET.get("candles", 5))  # По умолчанию 5 свечей
+
+        # Получение данных индикаторов
+        indicators = get_new_indicators_data(symbol, timeframe, num_values=candles)
+
+        # Вычисление уровней Pivot Points
+        pivot_points = calculate_pivot_points(symbol, timeframe, num_values=candles)
+
+        # Анализ стратегий
+        ict_data = ict_strategy(symbol, timeframe)
+        smc_data = smc_strategy(symbol, timeframe)
+        snr_data = snr_strategy(symbol, timeframe)
+
+        # Расчет уровней Фибоначчи
+        fib_data = prepare_fibonacci_levels(symbol, timeframe)
+        # Создание структуры инструмента
+        instrument_structure = create_instrument_structure(symbol, timeframe)
+        regression_channel = calculate_regression_channel(symbol, timeframe)
+        # Расчет ближайших уровней поддержки и сопротивления
+        current_price = instrument_structure.get("current_price")
+        nearest_levels = find_nearest_levels(fib_data, current_price)
+        fib_analysis = analyze_current_price_with_fibonacci(
+            high=instrument_structure["ohlc"][-1]["high"],  # Последний максимум
+            low=instrument_structure["ohlc"][-1]["low"],  # Последний минимум
+            close=instrument_structure["ohlc"][-1]["close"],  # Цена закрытия
+            current_price=instrument_structure["current_price"],  # Текущая цена
+            start_time=instrument_structure["ohlc"][0]["time"],  # Начало анализа
+            end_time=instrument_structure["ohlc"][-1]["time"],  # Конец анализа
+        )
+        # Расчет OTE
+        ote_analysis = calculate_ote(
+            symbol=symbol,
+            timeframe=timeframe,
+            trend=instrument_structure["trend"],
+            bars=500,
+            local_bars=128,
+        )
+
+        # Проверка, находится ли текущая цена в зоне OTE
+        is_in_ote = (
+            is_price_in_ote(
+                price=instrument_structure["current_price"],
+                ote_levels=ote_analysis["ote_levels"],
+            )
+            if ote_analysis
+            else False
+        )
+
+        # Подготовка контекста
+        context = {
+            "symbol": symbol,
+            "timeframe_label": timeframe_label,
+            "candles": candles,
+            "indicators": indicators,
+            "pivot_points": pivot_points,
+            "ict_strategy": ict_data,
+            "smc_strategy": smc_data,
+            "snr_strategy": snr_data,
+            "fibonacci_levels": fib_data,
+            "instrument_structure": instrument_structure,
+            "regression_channel": regression_channel,
+            "nearest_levels": nearest_levels,  # Добавляем ближайшие уровни
+            "fib_analysis": fib_analysis,
+            "ote_analysis": ote_analysis,
+            "is_in_ote": is_in_ote,
+        }
+
+        # Возвращаем JSON для AJAX-запросов
+        if request.headers.get("x-requested-with") == "XMLHttpRequest":
+            return JsonResponse(context)
+
+        # Рендерим HTML-шаблон
+        return render(
+            request, "technical_analysis/technical_analysis_ict.html", context
+        )
+
+    except Exception as e:
+        logging.error(f"Ошибка в technical_analysis_strategies: {e}")
+        return JsonResponse({"error": str(e)}, status=500)
+
+    finally:
+        # Завершаем сессию MetaTrader 5
+        shutdown_mt5()
 
 
-def technical_analysis_snr(request):
-    context = {}
-    return render(request, "technical_analysis/technical_analysis_snr.html", context)
+def technical_analysis_snr(request: HttpRequest) -> HttpResponse:
 
+    try:
+        # Инициализация MetaTrader 5
+        initialize_mt5()
 
-from django.core.cache import cache
+        # Получаем символ из cookie или GET-запроса
+        symbol_from_cookie = request.COOKIES.get("selected_pair", "XAUUSD")
+        symbol = request.GET.get("symbol", symbol_from_cookie)
+
+        selected_timeframe = request.GET.get("timeframe", "15m").lower()
+
+        timeframes = define_timeframes()
+        timeframe = timeframes.get(selected_timeframe, mt5.TIMEFRAME_M15)
+
+        print(f"🛠 DEBUG: Таймфрейм {selected_timeframe} -> {timeframe}")
+
+        # Проверяем, что `timeframe` стал `int`, а не строкой!
+        assert isinstance(timeframe, int), f"❌ Ошибка: {timeframe} не int"
+        selected_candles = int(request.GET.get("candles", 5))  # По умолчанию 5 свечей
+        candles = selected_candles
+
+        # 🔥 Интеграция маркет-анализа (запускаем его вместе с остальным анализом)
+        market_analysis = get_market_analysis(
+            symbol, [selected_timeframe], num_values=candles
+        )
+
+        # Получение данных индикаторов
+        indicators = get_new_indicators_data(symbol, timeframe, num_values=candles)
+
+        # Вычисление уровней Pivot Points
+        pivot_points = calculate_pivot_points(symbol, timeframe, num_values=candles)
+
+        # Анализ стратегий
+        ict_data = ict_strategy(symbol, timeframe)
+        smc_data = smc_strategy(symbol, timeframe)
+        snr_data = snr_strategy(symbol, timeframe)
+
+        # Расчет уровней Фибоначчи
+        fib_data = prepare_fibonacci_levels(symbol, timeframe)
+        # Создание структуры инструмента
+        instrument_structure = create_instrument_structure(symbol, timeframe)
+        regression_channel = calculate_regression_channel(symbol, timeframe)
+        # Расчет ближайших уровней поддержки и сопротивления
+        current_price = instrument_structure.get("current_price")
+        nearest_levels = find_nearest_levels(fib_data, current_price)
+        fib_analysis = analyze_current_price_with_fibonacci(
+            high=instrument_structure["ohlc"][-1]["high"],  # Последний максимум
+            low=instrument_structure["ohlc"][-1]["low"],  # Последний минимум
+            close=instrument_structure["ohlc"][-1]["close"],  # Цена закрытия
+            current_price=instrument_structure["current_price"],  # Текущая цена
+            start_time=instrument_structure["ohlc"][0]["time"],  # Начало анализа
+            end_time=instrument_structure["ohlc"][-1]["time"],  # Конец анализа
+        )
+        # Расчет OTE
+        ote_analysis = calculate_ote(
+            symbol=symbol,
+            timeframe=timeframe,
+            trend=instrument_structure["trend"],
+            bars=500,
+            local_bars=128,
+        )
+
+        # Проверка, находится ли текущая цена в зоне OTE
+        is_in_ote = (
+            is_price_in_ote(
+                price=instrument_structure["current_price"],
+                ote_levels=ote_analysis["ote_levels"],
+            )
+            if ote_analysis
+            else False
+        )
+
+        # Приводим Timestamp к строке
+        for bar in instrument_structure["ohlc"]:
+            bar["time"] = bar["time"].isoformat()
+
+        # Сериализуем вручную
+        ohlc_json = json.dumps(instrument_structure["ohlc"])
+
+        # Подготовка контекста (добавляем маркет-анализ)
+        context = {
+            "symbol": symbol,
+            "timeframes": list(timeframes.keys()),
+            "selected_timeframe": selected_timeframe,
+            "selected_candles": selected_candles,
+            "indicators": indicators,
+            "pivot_points": pivot_points,
+            "ict_strategy": ict_data,
+            "smc_strategy": smc_data,
+            "snr_strategy": snr_data,
+            "fibonacci_levels": fib_data,
+            "instrument_structure": instrument_structure,
+            "regression_channel": regression_channel,
+            "nearest_levels": nearest_levels,  # Добавляем ближайшие уровни
+            "fib_analysis": fib_analysis,
+            "ote_analysis": ote_analysis,
+            "is_in_ote": is_in_ote,
+            "ohlc_data": instrument_structure["ohlc"],  # список OHLC
+            "ohlc_json": ohlc_json,
+            "market_analysis": market_analysis,  # 🔥 Добавляем маркет-анализ
+        }
+
+        # Возвращаем JSON для AJAX-запросов
+        if request.headers.get("x-requested-with") == "XMLHttpRequest":
+            return JsonResponse(context)
+
+        # HTML-ответ
+        response = render(
+            request, "technical_analysis/technical_analysis_snr.html", context
+        )
+        response.set_cookie("selected_timeframe", selected_timeframe)
+        return response
+
+    except Exception as e:
+        logging.error(f"Ошибка ...: {e}")
+        return JsonResponse({"error": str(e)}, status=500)
+
+    finally:
+        shutdown_mt5()
 
 
 # Страница AI анализа
@@ -1259,6 +2040,16 @@ def ai_analysis(request):
                     )
 
             # Выполнение анализа с помощью AI, если запрос поступил
+            if request.method == "POST" and "analyze_x3" in request.POST:
+                # Логика для анализа x3
+                result = analyze_with_ai_x3(symbol)
+                context["x3_analysis"] = result
+
+            if request.method == "POST" and "analyze_with_history" in request.POST:
+                # Логика для анализа с историей
+                result = appeal_to_ai_with_historical_data(symbol)
+                context["historical_analysis"] = result
+
             if request.method == "POST" and "analyze_with_ai" in request.POST:
                 # Собираем индикаторы для всех таймфреймов
                 indicators_summary = {}
@@ -1362,6 +2153,50 @@ def analyze_with_ai_x3(request):
             logging.error(f"Ошибка при выполнении анализа с AI x3: {e}")
             return JsonResponse({"error": "Не удалось выполнить анализ."}, status=500)
     return JsonResponse({"error": "Некорректный запрос."}, status=400)
+
+
+def analyze_with_historical_data(request):
+    try:
+        initialize_mt5()
+
+        symbol = request.GET.get("symbol", "XAUUSD")
+        timeframe = request.GET.get("timeframe", "D1")
+        num_candles = int(request.GET.get("candles", 50))
+
+        timeframe_mapping = {
+            "M1": mt5.TIMEFRAME_M1,
+            "M5": mt5.TIMEFRAME_M5,
+            "H1": mt5.TIMEFRAME_H1,
+            "D1": mt5.TIMEFRAME_D1,
+            "W1": mt5.TIMEFRAME_W1,
+        }
+        if timeframe not in timeframe_mapping:
+            raise ValueError(f"Некорректный таймфрейм: {timeframe}")
+        mapped_timeframe = timeframe_mapping[timeframe]
+
+        tick_data = get_currency_tick(symbol)
+        if tick_data is None:
+            raise ValueError(f"Не удалось получить тик для символа {symbol}.")
+        current_price = tick_data.get("bid") or tick_data.get("ask")
+
+        ohlc_data = get_rates_dataframe(symbol, mapped_timeframe, num_candles)
+        if ohlc_data.empty:
+            raise ValueError(f"Нет данных для {symbol} и таймфрейма {timeframe}.")
+
+        response_data = {
+            "symbol": symbol,
+            "timeframe": timeframe,
+            "current_price": current_price,
+            "ohlc_data": ohlc_data.to_dict("records"),
+        }
+        return JsonResponse(response_data, safe=False)
+
+    except Exception as e:
+        logging.error(f"Ошибка в analyze_with_historical_data: {e}")
+        return JsonResponse({"error": str(e)}, status=500)
+
+    finally:
+        shutdown_mt5()
 
 
 # Страница торговли
@@ -1568,6 +2403,7 @@ def define_timeframes():
     """Определение всех таймфреймов для анализа"""
     return {
         "1m": mt5.TIMEFRAME_M1,
+        "3m": mt5.TIMEFRAME_M3,
         "5m": mt5.TIMEFRAME_M5,
         "15m": mt5.TIMEFRAME_M15,
         "30m": mt5.TIMEFRAME_M30,
@@ -1594,12 +2430,6 @@ def run_strategy(symbol, timeframe, strategy_function, strategy_name):
     except Exception as e:
         # logging.error(f"Ошибка в стратегии {strategy_name} для {timeframe}: {e}")
         return {}
-
-
-from django.shortcuts import render
-from .models import Recommendation
-import logging
-from django.core.paginator import Paginator
 
 
 def recommendations_list(request):
@@ -1686,9 +2516,6 @@ def trade(request):
     return render(request, "trade.html")
 
 
-from django.http import JsonResponse
-
-
 def get_symbol_data(request):
     symbol = request.GET.get("symbol")
     if not symbol:
@@ -1699,9 +2526,6 @@ def get_symbol_data(request):
         return JsonResponse(data)
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
-
-
-from django.http import JsonResponse
 
 
 def get_historical_data(request):
@@ -1732,10 +2556,6 @@ def get_statistics_data(request):
         return JsonResponse({"error": str(e)}, status=500)
 
 
-from django.shortcuts import render
-from MetaTrader5 import initialize, history_deals_get, account_info
-
-
 def statistics_view(request):
     # Подключение к MetaTrader
     initialize()
@@ -1763,9 +2583,6 @@ def statistics_view(request):
             "equity": equity,
         },
     )
-
-
-import calendar
 
 
 def profit_loss_history(request):
@@ -1898,69 +2715,508 @@ def get_dashboard_indicators(symbol, timeframe, trend="up", num_values=1):
 
 
 def instrument_analysis(request):
-    symbol_from_cookie = request.COOKIES.get("selected_pair", "XAUUSD")
-    symbol = request.GET.get("symbol", symbol_from_cookie)
+    """
+    Обобщённая страница для вывода технических индикаторов и структуры рынка
+    по всем таймфреймам одновременно (или выборочно).
+    """
+    open_positions = get_open_positions()  # Если нужно
 
-    # Определяем доступные таймфреймы
-    timeframes = define_timeframes()
-    timeframe_label = request.GET.get("timeframe", "all")  # "all" для всех таймфреймов
-    num_values = int(request.GET.get("num_values", 500))  # Значение по умолчанию
+    # 1) Получаем текущий символ (из GET, потом cookie, иначе XAUUSD)
+    symbol = request.GET.get("symbol", request.COOKIES.get("selected_pair", "XAUUSD"))
 
+    # 2) Определяем, сколько баров подгружаем (по умолчанию 1)
     try:
-        if timeframe_label == "all":
-            instrument_data_by_timeframe = {
-                tf_label: create_instrument_structure(symbol, tf_value)
-                for tf_label, tf_value in timeframes.items()
-            }
-        else:
-            tf_value = timeframes.get(timeframe_label, mt5.TIMEFRAME_H1)
-            instrument_data_by_timeframe = {
-                timeframe_label: create_instrument_structure(symbol, tf_value)
-            }
+        num_values_int = int(request.GET.get("num_values", "1"))
+    except ValueError:
+        num_values_int = 1
 
-        # Формируем данные для графиков
-        chart_data = []
-        for tf_label, data in instrument_data_by_timeframe.items():
-            if data and "ohlc" in data and data["ohlc"]:
-                df = pd.DataFrame(data["ohlc"])
+    # 3) Какие таймфреймы обрабатываем?
+    requested_tf = request.GET.get("timeframe", "ALL")
+    all_timeframes = define_timeframes()  # Например, {"M1": "M1", "M5": "M5", ...}
+    if requested_tf.upper() != "ALL" and requested_tf in all_timeframes:
+        timeframes = {requested_tf: all_timeframes[requested_tf]}
+    else:
+        timeframes = all_timeframes
 
-                # Преобразуем `time` в строку (ISO формат)
-                df["time"] = df["time"].dt.strftime(
-                    "%Y-%m-%dT%H:%M:%S"
-                )  # Преобразуем в ISO 8601
+    # 4) Сколько последних значений (recent_count) для индикаторов показать?
+    try:
+        recent_count = int(request.GET.get("recent_count", "3"))
+    except ValueError:
+        recent_count = 3
 
-                ohlc = {
-                    "time": df["time"].tolist(),
-                    "open": df["open"].tolist(),
-                    "high": df["high"].tolist(),
-                    "low": df["low"].tolist(),
-                    "close": df["close"].tolist(),
-                }
-                fib_levels = data.get("fib_levels", {})
-                chart_data.append(
-                    {
-                        "timeframe": tf_label,
-                        "ohlc": ohlc,
-                        "fib_levels": fib_levels,
-                    }
+    # Базовый контекст
+    context = {
+        "selected_pair": symbol,
+        "num_values": num_values_int,
+        "requested_timeframe": requested_tf,
+        "recent_count": recent_count,
+    }
+
+    # 5) Подготовка словарей-накопителей
+    structure_by_timeframe = {}
+    indicators_by_timeframe = {}
+    pivot_points_by_timeframe = {}
+    market_structure_by_timeframe = {}
+    fibonacci_by_timeframe = {}
+
+    # Словари со значениями по умолчанию
+    default_structure = {
+        "trend": "Нет данных",
+        "support": None,
+        "resistance": None,
+    }
+    default_indicators = {
+        "atr": [],
+        "mfi": [],
+        "cci": [],
+        "stochastic_k": [],
+        "stochastic_d": [],
+        "sma": [],
+        "macd": [],
+        "signal": [],
+        "rsi": [],
+        "ohlc": [],
+        "pivot": [],
+        "pp_resistance": [],
+        "pp_support": [],
+        "upper_band": [],
+        "lower_band": [],
+        "vwap": [],
+        # и т.д., если есть ещё
+    }
+    default_pivot_points = [
+        {
+            "pivot": None,
+            "pp_resistance": [None] * 3,
+            "pp_support": [None] * 3,
+        }
+    ]
+    default_fibonacci = {
+        "fib_levels": {},
+        "fib_ranges": {},
+        "local_high": None,
+        "local_low": None,
+        "absolute_high": None,
+        "absolute_low": None,
+        "trend": None,
+    }
+
+    # 6) Подключаемся к MT5 и собираем данные
+    try:
+        initialize_mt5()
+        try:
+            # Проверяем тик для выбранного символа
+            selected_pair_tick = get_currency_tick(symbol)
+            if selected_pair_tick is None:
+                raise Exception(f"Не удалось получить тик для символа {symbol}.")
+            context["selected_pair_tick"] = selected_pair_tick
+
+            # Цикл по таймфреймам
+            for label, tf in timeframes.items():
+                # 6.1) Структура инструмента (support/resistance/trend)
+                instrument_data = create_instrument_structure(
+                    symbol, tf, bars=num_values_int
+                )
+                if not instrument_data:
+                    instrument_data = dict(default_structure)
+
+                instrument_data["trend_color"] = get_color_for_trend(
+                    instrument_data.get("trend", "Нет данных")
                 )
 
-        context = {
-            "symbol": symbol,
-            "timeframe_label": timeframe_label,
-            "timeframes": list(timeframes.keys()),
-            "instrument_data_by_timeframe": instrument_data_by_timeframe,
-            "chart_data": chart_data,
-            "num_values": num_values,
-        }
+                # 6.2) Индикаторы
+                ind_data = get_indicators_data(symbol, tf, num_values=num_values_int)
+                if not ind_data:
+                    ind_data = dict(default_indicators)
+
+                # Урезаем списки индикаторов до recent_count (если нужно)
+                for key, val in ind_data.items():
+                    if isinstance(val, list) and len(val) > recent_count:
+                        ind_data[key] = val[-recent_count:]
+
+                # 6.3) Pivot Points
+                pivot_points = calculate_pivot_points(symbol, tf, num_values_int)
+                if not pivot_points:
+                    pivot_points = default_pivot_points
+
+                # 6.4) Фибоначчи
+                fib_for_tf = calculate_fibonacci_levels(
+                    symbol, tf, bars=500, local_bars=100
+                )
+                if not fib_for_tf:
+                    fib_for_tf = dict(default_fibonacci)
+
+                # 6.5) Маркет структура (абсолютные / локальные экстремумы)
+                ms = identify_market_structure(symbol, tf)
+                if not ms:
+                    ms = dict(default_structure)
+
+                ms["trend_color"] = get_color_for_trend(ms.get("trend", "Нет данных"))
+                # Добавим экстремумы (если identify_market_structure их возвращает)
+                ms["absolute_high"] = ms.get("absolute_high", None)
+                ms["absolute_low"] = ms.get("absolute_low", None)
+                ms["local_high"] = ms.get("local_high", None)
+                ms["local_low"] = ms.get("local_low", None)
+
+                # Сохраняем данные в словари
+                structure_by_timeframe[label] = instrument_data
+                indicators_by_timeframe[label] = ind_data
+                pivot_points_by_timeframe[label] = pivot_points
+                fibonacci_by_timeframe[label] = fib_for_tf
+                market_structure_by_timeframe[label] = ms
+
+        finally:
+            shutdown_mt5()
 
     except Exception as e:
-        logging.error(f"Ошибка анализа инструмента: {e}")
-        context = {
-            "error": str(e),
-            "symbol": symbol,
-            "timeframe_label": timeframe_label,
-            "timeframes": list(timeframes.keys()),
+        context["error"] = str(e)
+        logging.error(f"Ошибка в technical_analysis_indicators: {e}")
+
+    # 7) Дополняем контекст
+    context.update(
+        {
+            "structure_by_timeframe": structure_by_timeframe,
+            "indicators_by_timeframe": indicators_by_timeframe,
+            "pivot_points_by_timeframe": pivot_points_by_timeframe,
+            "market_structure_by_timeframe": market_structure_by_timeframe,
+            "fibonacci_by_timeframe": fibonacci_by_timeframe,
         }
+    )
+
+    # 8) Формируем итоговый merged_data_by_timeframe — удобная структура «всё в одном»
+    merged_data_by_timeframe = []
+    for timeframe in indicators_by_timeframe:
+        # Берём подготовленные данные
+        ind = indicators_by_timeframe.get(timeframe, {})
+        instr = structure_by_timeframe.get(timeframe, {})
+        ms = market_structure_by_timeframe.get(timeframe, {})
+        fib = fibonacci_by_timeframe.get(timeframe, {})
+
+        # Пример дополнительных вычислений
+        fib_pivot_levels = {}
+        if fib:
+            fib_pivot_levels = (
+                calculate_fibonacci_pivot_points(
+                    fib.get("local_high", 0),
+                    fib.get("local_low", 0),
+                    fib.get("absolute_high", 0),
+                )
+                or {}
+            )
+
+        nearest_levels = {}
+        if fib_pivot_levels and "current_price" in fib:
+            nearest_levels = (
+                find_nearest_levels(fib_pivot_levels, fib["current_price"]) or {}
+            )
+
+        time_zones = {}
+        if fib.get("start_time") and fib.get("end_time"):
+            time_zones = (
+                calculate_fibonacci_time_zones(fib["start_time"], fib["end_time"]) or {}
+            )
+
+        # Собираем в единый dict
+        ote_data = calculate_ote(symbol, tf, trend="up")
+        fibonacci_data = fibonacci_by_timeframe.get(tf, {})
+        merged_data_by_timeframe.append(
+            {
+                "timeframe": timeframe,
+                "indicators": ind,
+                "structure": instr,  # create_instrument_structure
+                "market_structure": ms,  # identify_market_structure
+                "fibonacci": fib,  # calculate_fibonacci_levels
+                "fib_pivot_levels": fib_pivot_levels,
+                "nearest_levels": nearest_levels,
+                "time_zones": time_zones,
+                "ote": ote_data,  # Добавляем данные OTE
+            }
+        )
+
+    context["merged_data_by_timeframe"] = merged_data_by_timeframe
 
     return render(request, "technical_analysis/instrument_analysis.html", context)
+
+
+# НАЧИНАЮТСЯ ПОКАЗЫ ТРЕНДОВ ПО ИНДИКАТОРНЫМ ПОКАЗАТЕЛЯМ
+def calculate_stochastic_trend(k, d):
+    if k > d:
+        return "uptrend"
+    elif k < d:
+        return "downtrend"
+    return "range"
+
+
+######## ######## ####### ##########
+########## ### ##########
+
+
+def trade_chart(request):
+    """Генерация графика для веб-интерфейса"""
+    open_positions = get_open_positions()
+    symbol_from_cookie = request.COOKIES.get("selected_pair", "XAUUSD")
+
+    # Получаем валютную пару из GET-запроса или используем значение из cookie
+    symbol = request.GET.get("symbol", symbol_from_cookie)
+    timeframes = define_timeframes()
+    # The above Python code is retrieving a timeframe value from a GET request parameter named
+    # "timeframe". If the parameter is not provided in the request, it defaults to "15m".
+    selected_timeframe = request.GET.get("timeframe", "15m")
+
+    # Преобразуем в числовой код таймфрейма (например, mt5.TIMEFRAME_M15)
+    timeframe = timeframes.get(selected_timeframe, mt5.TIMEFRAME_M15)
+
+    # Получаем исторические данные (OHLC)
+    df = fetch_ohlc_data(symbol, timeframe, 100)
+    if df is None or df.empty:
+        return JsonResponse({"error": "Нет данных"}, status=400)
+
+    print("✅ DEBUG: Полученные данные")
+    print(df.head())  # Проверяем, передаются ли данные
+
+    # Генерация графика свечей
+    fig = go.Figure()
+    fig.add_trace(
+        go.Candlestick(
+            x=df["time"],
+            open=df["open"],
+            high=df["high"],
+            low=df["low"],
+            close=df["close"],
+            name="Свечи",
+        )
+    )
+
+    # Добавляем ключевые уровни
+    market_structure = identify_market_structure(symbol, timeframe)
+    if market_structure:
+        fig.add_hline(
+            y=market_structure["support"],
+            line=dict(color="blue", width=1),
+            name="Support",
+        )
+        fig.add_hline(
+            y=market_structure["resistance"],
+            line=dict(color="red", width=1),
+            name="Resistance",
+        )
+
+    # Уровни Фибоначчи
+    fib_levels = calculate_fibonacci_levels(symbol, timeframe)
+    if fib_levels:
+        for level, price in fib_levels["fib_levels"].items():
+            fig.add_hline(
+                y=price,
+                line=dict(color="gold", width=1, dash="dot"),
+                name=f"Fibo {level}",
+            )
+
+    # Индикаторы (RSI и MACD)
+    rsi = calculate_rsi(symbol, timeframe)
+    macd, signal = calculate_macd(symbol, timeframe)
+
+    # Создаём JSON-ответ
+    response_data = {
+        "graph": fig.to_json(),
+        "rsi": list(rsi),
+        "macd": list(macd),
+        "signal": list(signal),
+    }
+    return JsonResponse(response_data)
+
+
+def trade_chart_page(request):
+    """Рендеринг HTML страницы"""
+    # return render(request, "technical_analysis/plotly_chart.html")
+
+
+### ### ###        ###    ###
+### ### ####       #####  ###
+### ### #####      ##########
+### ### #####      ### ######
+### ### ####       ###   ####
+### ### ###        ###    ###
+
+
+# Список таймфреймов, доступных для выбора
+AVAILABLE_TIMEFRAMES = ["M1", "M5", "M15", "H1", "D1", "W1"]
+
+
+def plotly_chart_view(request: HttpRequest) -> HttpResponse:
+    """
+    Представление для страницы с интерактивным графиком Plotly.
+    Если выбран параметр timeframe="all", генерируются графики для всех доступных таймфреймов.
+    В противном случае генерируется график для выбранного таймфрейма.
+    Страница содержит три секции:
+      - Японские свечи (с возможной линией SMA)
+      - Осцилляторы (RSI, MACD и MACD Signal)
+      - Элементы масштабирования (Range Slider)
+    """
+    symbol = request.GET.get("symbol", "EURUSD")
+    selected_timeframe = request.GET.get("timeframe", "M15")
+    try:
+        # Параметр формы называется "candles" (согласно HTML) – используем его,
+        # если его нет, то по умолчанию 50
+        num_candles = int(request.GET.get("candles", 50))
+    except ValueError:
+        num_candles = 50
+
+    # Если выбран "all", то формируем список таймфреймов, иначе только один
+    if selected_timeframe.lower() == "all":
+        timeframes = AVAILABLE_TIMEFRAMES
+    else:
+        timeframes = [selected_timeframe]
+
+    charts = {}
+    for tf in timeframes:
+        try:
+            # Генерируем агрегированные данные для данного таймфрейма
+            data = generate_plotly_data(symbol, tf, num_candles)
+        except Exception as e:
+            logger.error(f"Ошибка при генерации данных для {tf}: {e}")
+            charts[tf] = f"Ошибка при генерации данных для {tf}."
+            continue
+
+        ohlc = data.get("ohlc")
+        if ohlc is None:
+            logger.error(f"Нет данных для построения графика для {symbol} {tf}")
+            charts[tf] = f"Нет данных для построения графика для {tf}."
+            continue
+
+        # Если получены данные в виде DataFrame, преобразуем в список словарей
+        if isinstance(ohlc, pd.DataFrame):
+            if ohlc.empty:
+                logger.error(f"Пустой DataFrame для OHLC {symbol} {tf}")
+                charts[tf] = f"Нет данных для построения графика для {tf}."
+                continue
+            ohlc = ohlc.round(5).to_dict(orient="records")
+
+        try:
+            dates = [item["time"] for item in ohlc]
+            open_prices = [item["open"] for item in ohlc]
+            high_prices = [item["high"] for item in ohlc]
+            low_prices = [item["low"] for item in ohlc]
+            close_prices = [item["close"] for item in ohlc]
+        except Exception as e:
+            logger.error(f"Ошибка при обработке OHLC данных для {symbol} {tf}: {e}")
+            charts[tf] = f"Ошибка при обработке данных для {tf}."
+            continue
+
+        # Получаем осцилляторы (RSI, MACD, MACD Signal)
+        rsi = data.get("rsi", [])
+        macd = data.get("macd", [])
+        macd_signal = data.get("macd_signal", [])
+
+        # Создаем фигуру с субплотами: верхняя строка — свечи, нижняя — осцилляторы
+        fig = make_subplots(
+            rows=2,
+            cols=1,
+            shared_xaxes=True,
+            vertical_spacing=0.1,
+            row_heights=[0.7, 0.3],
+            subplot_titles=(f"Японские свечи ({tf})", "Осцилляторы"),
+        )
+
+        # Секция 1: Японские свечи
+        candle = go.Candlestick(
+            x=dates,
+            open=open_prices,
+            high=high_prices,
+            low=low_prices,
+            close=close_prices,
+            name="Candlestick",
+        )
+        fig.add_trace(candle, row=1, col=1)
+
+        # Добавляем SMA, если данные есть
+        moving_average_data = data.get("moving_average", [])
+        if moving_average_data:
+            if isinstance(moving_average_data, pd.DataFrame):
+                moving_average_data = moving_average_data.round(5).to_dict(
+                    orient="records"
+                )
+            ma_dates = [item["time"] for item in moving_average_data]
+            ma_values = [item["moving_average"] for item in moving_average_data]
+            ma_line = go.Scatter(
+                x=ma_dates,
+                y=ma_values,
+                mode="lines",
+                line=dict(color="blue", width=1),
+                name="SMA",
+            )
+            fig.add_trace(ma_line, row=1, col=1)
+
+        # Секция 2: Осцилляторы
+        if rsi:
+            rsi_trace = go.Scatter(
+                x=dates[-len(rsi) :],
+                y=rsi,
+                mode="lines",
+                line=dict(color="orange", width=1),
+                name="RSI",
+            )
+            fig.add_trace(rsi_trace, row=2, col=1)
+        if macd and macd_signal:
+            macd_trace = go.Scatter(
+                x=dates[-len(macd) :],
+                y=macd,
+                mode="lines",
+                line=dict(color="green", width=1),
+                name="MACD",
+            )
+            macd_signal_trace = go.Scatter(
+                x=dates[-len(macd_signal) :],
+                y=macd_signal,
+                mode="lines",
+                line=dict(color="red", width=1),
+                name="MACD Signal",
+            )
+            fig.add_trace(macd_trace, row=2, col=1)
+            fig.add_trace(macd_signal_trace, row=2, col=1)
+
+        # Секция 3: Масштабирование – включаем Range Slider
+        fig.update_layout(
+            xaxis=dict(
+                rangeselector=dict(
+                    buttons=list(
+                        [
+                            dict(count=1, label="1d", step="day", stepmode="backward"),
+                            dict(count=7, label="1w", step="day", stepmode="backward"),
+                            dict(
+                                count=1, label="1m", step="month", stepmode="backward"
+                            ),
+                            dict(step="all"),
+                        ]
+                    )
+                ),
+                rangeslider=dict(visible=True),
+                type="date",
+            ),
+            margin=dict(l=40, r=40, t=40, b=40),
+            height=700,
+            title=f"График для {symbol} {tf} (последних {num_candles} баров)",
+        )
+
+        # Преобразуем фигуру в HTML
+        plot_div = fig.to_html(full_html=False)
+        charts[tf] = plot_div
+
+    # Передаем в шаблон:
+    context = {
+        "charts": charts,
+        "selected_timeframe": selected_timeframe,
+        "selected_candles": num_candles,
+        "timeframes": ["all"] + AVAILABLE_TIMEFRAMES,
+        "symbol": symbol,
+    }
+    return render(request, "technical_analysis/plotly_chart.html", context)
+
+
+def logout_user_properly(request):
+    logout(request)
+    request.session.flush()
+
+
+def logout_view(request):
+    logout_user_properly(request)
+    return redirect("login")

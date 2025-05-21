@@ -156,3 +156,18 @@ document.addEventListener("DOMContentLoaded", function () {
   initializeSidebarState();
   handleResize();
 });
+document.addEventListener("DOMContentLoaded", function () {
+  const toggleButtons = document.querySelectorAll(".toggle-details");
+  toggleButtons.forEach(button => {
+    button.addEventListener("click", function () {
+      const details = this.previousElementSibling;
+      if (details.classList.contains("hidden")) {
+        details.classList.remove("hidden");
+        this.textContent = "Скрыть детали";
+      } else {
+        details.classList.add("hidden");
+        this.textContent = "Показать детали";
+      }
+    });
+  });
+});

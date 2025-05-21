@@ -19,6 +19,13 @@ def get_local_extremes(df, column="close", order=10):
 
 
 def identify_market_structure(symbol, timeframe):
+    """
+    Анализ структуры рынка для заданного символа и таймфрейма.
+
+    :param symbol: Символ финансового инструмента.
+    :param timeframe: Таймфрейм (например, mt5.TIMEFRAME_H1).
+    :return: Словарь с информацией о структуре рынка или None при ошибке.
+    """
     df = get_rates_dataframe(symbol, timeframe, 500)
     if df is None or df.empty:
         log_data_error(symbol)
@@ -32,16 +39,26 @@ def identify_market_structure(symbol, timeframe):
         )
         return None
 
-    # Get local extremes
+    # Абсолютные экстремумы
+    absolute_high = df["high"].max()
+    absolute_low = df["low"].min()
+
+    # Локальные экстремумы
     local_highs, local_lows = get_local_extremes(df, column="close", order=20)
-    support = local_lows["close"].mean()
-    resistance = local_highs["close"].mean()
+    local_high = local_highs["close"].max() if not local_highs.empty else None
+    local_low = local_lows["close"].min() if not local_lows.empty else None
+
+    # Вычисление локальных экстремумов
+    local_highs, local_lows = get_local_extremes(df, column="close", order=20)
+    support = local_lows["close"].mean() if not local_lows.empty else None
+    resistance = local_highs["close"].mean() if not local_highs.empty else None
 
     current_price = df["close"].iloc[-1]
 
     recent_highs = df["high"].rolling(window=20).max().iloc[-1]
     recent_lows = df["low"].rolling(window=20).min().iloc[-1]
 
+    # Определение тренда
     if current_price > recent_highs:
         trend = "strong_uptrend"
     elif current_price < recent_lows:
@@ -59,12 +76,8 @@ def identify_market_structure(symbol, timeframe):
             f"Recent Lows: {recent_lows}, Price Range: {price_range}, "
             f"Overall Range: {overall_range}, Trend: {trend}"
         )
-        if trend == "range":
-            # Не заменяем "range" на другой тренд
-            logging.info("Trend correctly identified as 'range'")
-        else:
-            logging.info(f"Trend identified as '{trend}'")
 
+    # Вычисление SMA для подтверждения тренда
     sma_50 = (
         df["close"].rolling(window=50).mean().iloc[-1]
         if data_length >= 50
@@ -82,14 +95,20 @@ def identify_market_structure(symbol, timeframe):
         else "downtrend_confirmation" if sma_50 < sma_200 else "no_confirmation"
     )
 
+    # Вычисление ATR
     atr = None
-    if data_length >= 15:  # ATR requires at least 14 periods
-        atr = talib.ATR(df["high"], df["low"], df["close"], timeperiod=14).iloc[-1]
+    if data_length >= 15:  # ATR требует минимум 14 периодов
+        try:
+            atr = talib.ATR(df["high"], df["low"], df["close"], timeperiod=14).iloc[-1]
+        except Exception as e:
+            logging.error(f"Ошибка расчёта ATR для {symbol} {timeframe}: {e}")
     else:
-        logging.warning(f"Недостаточно данных для расчета ATR {symbol} {timeframe}.")
+        logging.warning(f"Недостаточно данных для расчёта ATR {symbol} {timeframe}.")
 
+    # Вычисление регрессионного канала
     regression_result = calculate_regression_channel(symbol, timeframe) or {}
 
+    # Создание структуры рынка
     market_structure = {
         "current_price": current_price,
         "trend": trend,
@@ -101,7 +120,14 @@ def identify_market_structure(symbol, timeframe):
         "atr": atr,
         "regression": regression_result,
         "incomplete_data": data_length < 200,
+        "absolute_high": absolute_high,
+        "absolute_low": absolute_low,
+        "local_high": local_high,
+        "local_low": local_low,
     }
+
+    # Логирование результата
+    logging.info(f"Структура рынка для {symbol} {timeframe}: {market_structure}")
 
     return market_structure
 
@@ -109,7 +135,7 @@ def identify_market_structure(symbol, timeframe):
 import numpy as np
 
 
-def create_instrument_structure(symbol, timeframe, bars=500, local_order=20):
+def create_instrument_structure(symbol, timeframe, bars=500, local_order=64):
     """
     Создает идентификатор структуры инструмента на основе ключевых данных.
     """
@@ -160,6 +186,7 @@ def create_instrument_structure(symbol, timeframe, bars=500, local_order=20):
         resistance = local_highs["close"].mean()
 
         # Объединение данных в структуру инструмента
+
         instrument_structure = {
             "current_price": market_structure.get("current_price"),
             "trend": trend,
@@ -192,7 +219,7 @@ def calculate_regression_channel(symbol, timeframe):
     Returns:
         dict or None: Contains slope, intercept, upper_channel, and lower_channel if successful; otherwise None.
     """
-    df = get_rates_dataframe(symbol, timeframe, period=660)
+    df = get_rates_dataframe(symbol, timeframe, period=500)
 
     if df is None or df.empty:
         logging.error(

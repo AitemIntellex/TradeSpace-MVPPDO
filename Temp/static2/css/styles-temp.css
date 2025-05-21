@@ -1,0 +1,1370 @@
+/* Общие стили */
+body {
+
+    background-color: #1e2324;
+}
+
+container-body {
+    margin: 0;
+    padding: 0;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: #30424D;
+}
+.wrapper {
+    display: flex;
+    min-height: 100vh;
+    /* Используем min-height вместо height */
+    overflow-y: auto;
+    /* Разрешаем вертикальную прокрутку */
+}
+
+/* Меню статусов */
+.status-menu {
+    display: flex;
+    justify-content: center;
+    /* Центрирование элементов по горизонтали */
+    gap: 75px;
+    /* Устанавливаем расстояние между элементами */
+    padding: 10px;
+    border-radius: 10px;
+    margin-bottom: 5px;
+    font-size: 22px;
+
+}
+
+.status-menu a {
+    color: #ffffff;
+    text-decoration: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    transition: background-color 0.3s ease;
+}
+
+.status-menu a:hover,
+.status-menu a.active {
+    color: #ffe600;
+}
+
+.wrapper {
+    display: flex;
+    height: 100vh; /* Высота на 100% экрана */
+    overflow: hidden; /* Убираем лишний скролл */
+}
+
+.sidebar {
+    flex: 0 0 250px; /* Фиксированная ширина бокового меню */
+    height: 100vh; /* Меню занимает всю высоту экрана */
+    position: fixed; /* Фиксируем меню */
+    overflow-y: auto; /* Прокрутка внутри меню, если оно переполнено */
+    background-color: #343a40; /* Темный фон для меню */
+    color: white;
+}
+
+.main {
+    flex: 1;
+    margin-left: 250px; /* Учитываем ширину фиксированного меню */
+    overflow-y: auto; /* Разрешаем прокрутку только основного контента */
+    padding: 20px; /* Отступы для контента */
+    height: 100vh; /* Заполняем высоту экрана */
+    box-sizing: border-box;
+
+}
+
+.navbar {
+    position: sticky; /* Фиксируем верхнюю панель */
+    top: 0;
+    z-index: 1000; /* Поверх контента */
+    background-color: white; /* Белый фон для читаемости */
+    padding: 10px 20px;
+    border-bottom: 1px solid #ddd;
+}
+
+/* Сайдбар */
+.sidebar {
+    background-color: #1e2324;
+    width: 224px;
+    min-width: 224px;
+    transition: width 0.3s ease;
+    display: flex;
+    flex-direction: column;
+}
+
+.sidebar.collapsed {
+    width: 60px;
+    min-width: 60px;
+}
+
+
+.sidebar .logo {
+    text-align: center;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 150px;
+    transition: height 0.3s ease;
+}
+
+.sidebar .logo img {
+    width: 100px;
+    transition: width 0.3s ease, transform 0.3s ease;
+}
+
+.sidebar.collapsed .logo img {
+    width: 120px;
+    transform: rotate(90deg);
+}
+
+.sidebar .sidebar-sticky {
+
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    align-items: center;
+}
+.sidebar .nav-link {
+    color: #ecf0f1;
+    display: flex;
+    align-items: center;
+    padding: 15px 30px;
+    transition: padding 0.3s ease;
+    text-decoration: none;
+
+    font-family: 'Montserrat', sans-serif;
+    /* Добавляем 'sans-serif' как запасной вариант */
+    font-style: normal;
+    font-weight: 500;
+    font-size: 17px;
+    line-height: 25px;
+    letter-spacing: 0.03em;
+        /* Добавляем расстояние между символами */
+}
+
+/* Rectangle 45 */
+
+
+.sidebar .nav-link .icon {
+    margin-right: 10px;
+    transition: margin 0.3s ease;
+}
+
+.sidebar.collapsed .nav-link .icon {
+    margin-right: 0;
+}
+
+.sidebar .nav-link .text {
+    transition: opacity 0.3s ease, width 0.3s ease;
+}
+
+.sidebar.collapsed .nav-link .text {
+    opacity: 0;
+    width: 0;
+}
+
+.sidebar .nav-link:hover {
+    color: #3498db;
+}
+
+.sidebar .nav-link.active {
+
+    color: #3498db;
+
+
+/* Основной контент */
+.main {
+    flex-grow: 1;
+    transition: margin-left 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.main.collapsed {
+    margin-left: 0px;
+}
+
+.main header {
+    background-color: #2a4b5a;
+    color: #ecf0f1;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.navbar {
+    background-color: #2a4b5a;
+    color: #ecf0f1;
+    padding: 0.5rem 1rem;
+    border-bottom: 1px solid #b7c4ad;
+}
+
+.content-container {
+
+    color: #ecf0f1;
+    padding: 10px;
+    border-radius: 5px;
+    margin: 10px;
+    flex-grow: 1;
+    overflow-y: auto;
+}
+
+.dashboard-widgets {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.widget {
+    background-color: #1abc9c;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
+    flex: 1;
+    min-width: 250px;
+    transition: transform 0.3s ease-in-out;
+    color: #2c3e50;
+}
+
+.widget:hover {
+    transform: scale(1.05);
+}
+
+.welcome-banner {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.welcome-banner img {
+    width: 100%;
+    height: auto;
+}
+
+/* Стили для Load Board */
+.load-board-container {
+    padding: 4%;
+    border-radius: 10px;
+    margin: -60px auto 0 auto;
+    /* Верхний отступ -15px */
+}
+
+.load-form {
+    display: flex;
+    justify-content: space-between;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.form-section {
+    flex: 1;
+    padding: 40px;
+    border-radius: 10px;
+    min-width: 250px;
+}
+
+.form-section h3 {
+    color: #ff9900;
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.form-section label {
+    display: block;
+    margin-bottom: 5px;
+    color: #ffffff;
+}
+
+.form-section input,
+.form-section select,
+.form-section textarea {
+    width: 100%;
+    margin-bottom: 25px;
+    padding: 10px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+    background-color: #ffffff;
+    color: #333333;
+    width: 100%;
+        /*Ширина текстовой области*/
+        height: 50px;
+        /*Высота текстовой области*/
+    font-family: "Montserrat", sans-serif;
+}
+
+
+/* Load Number */
+.load-number {
+    text-align: right;
+    font-size: 16px;
+    color: #ffffff;
+    margin-top: 10px;
+}
+
+/* Кнопки формы */
+.form-actions {
+    display: flex;
+    justify-content: center;
+    margin-top: 0px;
+}
+
+.form-actions .btn {
+    padding: 10px 20px;
+    margin-left: 10px;
+    border-radius: 5px;
+    font-size: 16px;
+}
+
+.btn-primary {
+    background-color: #ff9900;
+    color: white;
+    border: none;
+}
+
+.btn-primary:hover {
+    background-color: #cc7a00;
+}
+
+.btn-secondary {
+    background-color: #6c757d;
+    color: white;
+    border: none;
+}
+
+.btn-secondary:hover {
+    background-color: #5a6268;
+}
+
+/* Форма с плавающими метками */
+.floating-label {
+    position: relative;
+    margin-bottom: 20px;
+}
+
+.floating-label label {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    color: #999;
+    pointer-events: none;
+    transition: all 0.2s ease-out;
+}
+
+.floating-label input {
+    padding: 15px 10px 5px 10px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+}
+
+.floating-label input:placeholder-shown+label {
+    font-size: 16px;
+    top: 10px;
+    left: 10px;
+    color: #999;
+}
+
+.floating-label input:not(:placeholder-shown)+label,
+.floating-label input:focus:not(:placeholder-shown)+label {
+    top: -20px;
+    left: 10px;
+    font-size: 12px;
+    color: #007bff;
+}
+
+/* Таблица в Load Board */
+.table-container {
+    background-color: #ffffff;
+    border-radius: 10px;
+    padding: 20px;
+    width: 100%;
+
+    border-collapse: collapse;
+}
+
+.table-container table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.table-container table th,
+.table-container table td {
+    padding: 15px;
+    border-bottom: 1px solid #ddd;
+    text-align: left;
+}
+
+.table-container table th {
+    background-color: #ffffff;
+    color: black;
+}
+
+.table-container table tr:hover {
+    background-color: #f1f1f1;
+}
+
+/* Стили для таблиц в других страницах */
+.styled-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 30px;
+    background-color: white;
+    color: black;
+
+}
+
+.styled-table th,
+.styled-table td {
+    padding: 10px 15px;
+    text-align: left;
+    border-bottom: 1px solid #ccc;
+}
+
+.styled-table tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
+
+.styled-table tr:nth-child(odd) {
+    background-color: #fff;
+}
+
+@media screen and (max-width: 768px) {
+    .styled-table,
+    .styled-table thead,
+    .styled-table tbody,
+    .styled-table th,
+    .styled-table td,
+    .styled-table tr {
+        display: block;
+    }
+
+    .styled-table tr {
+        margin-bottom: 15px;
+    }
+
+    .styled-table td {
+        text-align: right;
+        padding-left: 50%;
+        position: relative;
+    }
+
+    .styled-table td::before {
+        content: attr(data-label);
+        position: absolute;
+        left: 10px;
+        text-align: left;
+        font-weight: bold;
+    }
+}
+/* Общие стили страницы входа */
+
+
+.login-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    height: 100%;
+}
+
+.login-box {
+
+    padding: 40px;
+    border-radius: 10px;
+    width: 400px;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+    text-align: center;
+}
+
+.logo img {
+    width: 75%;
+    margin-bottom: 40px;
+}
+
+.input-group {
+    position: relative;
+    /* Чтобы иконки могли позиционироваться внутри контейнера */
+    margin-bottom: 15px;
+}
+
+.input-group input {
+    width: 100%;
+    padding: 10px 40px 10px 40px;
+    /* Отступы слева и справа для иконок */
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: 16px;
+    box-sizing: border-box;
+    background-color: #3E525E;
+    color: white;
+}
+
+.input-group input::placeholder {
+    color: #bbb;
+}
+
+.icon-left {
+    position: absolute;
+    top: 50%;
+    left: 10px;
+    /* Иконка пароля слева */
+    transform: translateY(-50%);
+    width: 24px;
+    height: 24px;
+}
+
+.icon-left img {
+    width: 100%;
+    height: 100%;
+}
+
+.icon-right {
+    position: absolute;
+    top: 50%;
+    right: 10px;
+    /* Иконка показа пароля справа */
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    cursor: pointer;
+
+    height: 24px;
+}
+
+.icon-right img {
+    width: 100%;
+    height: 100%;
+}
+
+.input-group label {
+    position: absolute;
+    top: 50%;
+    left: 10px;
+    /* Позиция иконки слева внутри поля */
+    transform: translateY(-50%);
+    /* Центрирование по вертикали */
+    width: 24px;
+    /* Размер иконки */
+    height: 24px;
+}
+
+.input-group label img {
+    width: 100%;
+    height: 100%;
+}
+
+.input-group input::placeholder {
+    color: #bbb;
+}
+
+.toggle-password {
+    background: none;
+    border: none;
+    cursor: pointer;
+}
+
+.remember-me {
+    display: flex;
+    align-items: center;
+    margin-bottom: 20px;
+    color: #FFFFFF;
+}
+
+.remember-me input {
+    margin-right: 10px;
+
+}
+
+.btn {
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+.btn:hover {
+    background-color: #D48F00;
+}
+
+.forgot-password {
+    display: block;
+    margin-top: 10px;
+    color: #F0A500;
+    text-decoration: none;
+}
+
+.other-sign-in-options {
+    margin-top: 20px;
+    color: #FFFFFF;
+}
+
+.social-icons img {
+    width: 40px;
+    margin: 0 10px;
+}
+
+.social-icons a {
+    display: inline-block;
+}
+.custom-textarea {
+    width: 100%;
+    /*Ширина текстовой области*/
+    height: 50px;
+    /*Высота текстовой области*/
+}
+
+/* Стили для заголовков столбцов */
+.table-header {
+    background-color: #f4f4f4;
+    color: #333;
+    text-align: left;
+    font-weight: bold;
+    padding: 10px;
+    font-size: 16px;
+    border-bottom: 2px solid #ccc;
+}
+
+/* Стили для компании */
+.company-name {
+    background-color: #2d3e50;
+    color: white;
+    font-size: 18px;
+    font-weight: bold;
+    padding: 10px;
+    text-transform: uppercase;
+    border-bottom: 1px solid #ccc;
+}
+
+/* Стили для строк драйверов */
+.driver-row {
+    padding: 10px;
+    background-color: white;
+    border-bottom: 1px solid #ddd;
+    text-align: left;
+}
+
+.driver-row:nth-child(even) {
+    background-color: #f9f9f9;
+}
+
+/* Стили для информации в строках */
+.driver-info {
+    padding: 10px;
+    font-size: 14px;
+    color: #333;
+}
+
+/* Стили для статусов водителей */
+.status {
+    font-weight: bold;
+    padding: 5px 10px;
+    border-radius: 5px;
+}
+
+.status.DISPATCHED {
+    background-color: #28a745;
+    color: white;
+}
+
+.status.READY {
+    background-color: #dc3545;
+    color: white;
+}
+
+.status.ENROUTE {
+    background-color: #007bff;
+    color: white;
+}
+
+.status.HOME {
+    background-color: #6c757d;
+    color: white;
+}
+
+.status.STOP {
+    background-color: #ffc107;
+    color: white;
+}
+
+/* Стили для кнопки перехода */
+.view-details {
+    background-color: #007bff;
+    color: white;
+    padding: 5px 10px;
+    text-align: center;
+    border-radius: 5px;
+    font-size: 14px;
+    cursor: pointer;
+    text-decoration: none;
+}
+
+.view-details:hover {
+    background-color: #0056b3;
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+    .table-container {
+        font-size: 12px;
+    }
+
+    .driver-row {
+        padding: 5px;
+    }
+
+    .table-header,
+    .company-name {
+        padding: 5px;
+    }
+}
+/* Стили таблицы */
+.styled-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 20px 0;
+    font-size: 16px;
+    text-align: left;
+}
+
+.styled-table th,
+.styled-table td {
+    padding: 12px 15px;
+}
+
+.styled-table thead tr {
+    background-color: #009879;
+    color: #ffffff;
+    text-align: left;
+}
+
+.styled-table tbody tr {
+    border-bottom: 1px solid #dddddd;
+}
+
+.styled-table tbody tr:nth-of-type(even) {
+    background-color: #f3f3f3;
+}
+
+.styled-table tbody tr:last-of-type {
+    border-bottom: 2px solid #009879;
+}
+
+/* Стили для названия компании */
+.company-name {
+    background-color: #2d3e50;
+    color: white;
+    padding: 10px;
+    margin-top: 20px;
+    font-size: 18px;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+/*< !-- Стили для модального окна -->*/
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    justify-content: center;
+    align-items: center;
+}
+
+.modal-content {
+    background-color: #fefefe;
+    padding: 20px;
+    border: 1px solid #888;
+    width: 400px;
+    margin: auto;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    border-radius: 8px;
+}
+
+.close {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+}
+
+.close:hover,
+.close:focus {
+    color: black;
+    text-decoration: none;
+    cursor: pointer;
+
+}
+.form-group {
+    display: flex;
+    justify-content: space-between;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+/* Стили для формы с типом date */
+input[type="date"]::before {
+    content: attr(placeholder);
+    /* Используем placeholder в качестве содержимого */
+    color: #000000;
+    /* Цвет для имитации placeholder */
+    font-size: 14px;
+    position: absolute;
+    top: 50%;
+    right: 30px;
+    transform: translateY(-50%);
+    pointer-events: none;
+    /* Отключаем взаимодействие с текстом */
+}
+
+/* Когда пользователь вводит дату, скрываем псевдоэлемент */
+input[type="date"]:valid::before,
+input[type="date"]:focus::before {
+    content: '';
+    /* Убираем текст */
+}
+
+/* Дополнительные стили, чтобы поле выглядело как заполненное */
+input[type="date"] {
+    position: relative;
+    padding-left: 10px;
+    /* Отступ слева для текста */
+    color: #000;
+}
+
+/* Основной стиль для страницы Upcoming Loads в дашборде Load Board */
+
+/* Секция перевозчика */
+.carrier-section {
+    margin-bottom: 2em;
+}
+
+/* Таблица загрузок */
+.load-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 1em;
+}
+
+.load-table tr.load-row {
+    border-bottom: 1px solid #5a1d1d;
+    cursor: pointer;
+}
+
+.load-table tr.load-row:hover {
+    background-color: #f9f9f9;
+}
+
+/* Стиль для ячеек таблицы */
+.load-id {
+    font-weight: bold;
+    color: #007bff;
+    padding: 10px;
+    width: 15%;
+}
+
+.broker-info {
+    padding: 10px;
+    width: 30%;
+}
+
+.pickup-info {
+    padding: 10px;
+    width: 25%;
+}
+
+.delivery-info {
+    padding: 10px;
+    width: 25%;
+}
+
+.status-info {
+    padding: 10px;
+    text-align: right;
+    color: #555;
+}
+
+/* Стиль для кнопки редактирования */
+.edit-link {
+    color: #007bff;
+    text-decoration: none;
+    font-size: 0.9em;
+}
+
+.edit-link:hover {
+    text-decoration: underline;
+}
+
+/* Кнопка для добавления новой загрузки */
+.new-load-button {
+    text-align: right;
+    margin-top: -50px;
+    margin-bottom: 20px;
+}
+
+.new-load-button .btn-primary {
+    background-color: #007bff;
+    border: none;
+    padding: 10px 20px;
+    font-size: 1em;
+    font-weight: bold;
+}
+
+.new-load-button .btn-primary:hover {
+    background-color: #0056b3;
+}
+
+/* Основной заголовок */
+h2.my-4 {
+    font-size: 2em;
+    font-weight: bold;
+    color: #333;
+}
+
+/* Разделы страницы */
+.form-section {
+    margin-bottom: 2em;
+}
+
+/* Информация о предстоящих загрузках */
+.upcoming-loads-header {
+    font-weight: bold;
+    font-size: 1.8em;
+    color: #444;
+    margin-bottom: 1em;
+}
+
+/* Основной стиль для кнопок на странице */
+.form-actions .btn {
+    padding: 10px 20px;
+    font-size: 1em;
+}
+
+/* Кнопка "Сохранить" */
+.btn-primary {
+    background-color: #007bff;
+    border: none;
+}
+
+.btn-primary:hover {
+    background-color: #0056b3;
+}
+
+/* Кнопка "Отмена" */
+.btn-secondary {
+    background-color: #6c757d;
+    border: none;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background-color: #5a6268;
+}
+
+/* Основные стили страницы */
+body {
+    font-family: 'Montserrat', sans-serif;
+    background-color: #224957;
+    color: #f5f5f5;
+}
+
+.container {
+    margin-top: 30px;
+}
+
+/* Стили заголовков */
+h2,
+h3 {
+    padding: .40rem;
+    font-weight: 500;
+    color: #f5f5f5;
+    font-size: 1.25rem;
+}
+
+/* Стили для таблицы с загрузками */
+.carrier-section {
+    background-color: #28404C;
+
+    margin-bottom: 20px;
+    border-radius: 8px;
+}
+
+.load-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+}
+
+.load-table tr.load-row {
+    background-color: #365c69;
+    margin-bottom: 10px;
+    border-bottom: 1px solid #f5f5f5;
+    transition: background-color 0.3s ease-in-out;
+}
+
+.load-table tr.load-row:hover {
+    background-color: #3e6e7a;
+}
+
+.load-table td {
+    padding: 10px;
+    vertical-align: top;
+    font-size: 0.9rem;
+    color: #000000;
+    background-color: #EFF2FA;
+    border-bottom: 2px solid #224957;
+}
+
+.load-id {
+    font-weight: bold;
+}
+
+.edit-link {
+    color: #00b0ff;
+    text-decoration: none;
+    font-size: 0.8rem;
+}
+
+.edit-link:hover {
+    text-decoration: underline;
+}
+
+/* Стили для кнопки */
+.new-load-button .btn {
+    background-color: #006064;
+    color: #ffffff;
+    transition: background-color 0.3s ease;
+}
+
+.new-load-button .btn:hover {
+    background-color: #004d40;
+    color: #ffffff;
+}
+
+/* Стили таблицы для улучшения выравнивания */
+.load-table td.broker-info,
+.load-table td.origin,
+.load-table td.destination,
+.load-table td.miles-info,
+.load-table td.rate-info,
+.load-table td.driver-info {
+    text-align: left;
+    padding-right: 15px;
+}
+
+/* Стили для разделения секций */
+.carrier-section h3 {
+
+
+
+    font-family: 'Montserrat', sans-serif;
+    justify-content: center;
+
+        display: flex;
+
+}
+
+/*CSS для модального окна загрузки LOAD BOARD*/
+.details-content {
+    padding: 15px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    margin-top: 15px;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 30px;
+}
+
+.info-block {
+    flex: 1;
+    margin-right: 10px;
+    box-sizing: border-box;
+}
+
+.info-block h5 {
+    margin-bottom: 8px;
+    font-weight: bold;
+}
+
+.info-block p {
+    margin: 0;
+    color: #555;
+    font-size: 14px;
+}
+
+.notes-section {
+    margin-top: 20px;
+}
+
+.notes-list {
+    padding: 0;
+    list-style: none;
+    margin: 0 0 10px;
+}
+
+.notes-list li {
+    margin-bottom: 5px;
+    font-size: 14px;
+    color: #333;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+button[type="submit"] {
+    align-self: flex-start;
+}
+
+/*Форма комментарий в модале*/
+
+/*MODAL*/
+
+.modal-open {
+    overflow: hidden
+}
+
+.modal-open .modal {
+    overflow-x: hidden;
+    overflow-y: auto
+}
+
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 1050;
+    display: none;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    outline: 0
+}
+
+.modal-dialog {
+    position: relative;
+    width: auto;
+    margin: .5rem;
+    pointer-events: none
+}
+
+.modal.fade .modal-dialog {
+    transition: -webkit-transform .3s ease-out;
+    transition: transform .3s ease-out;
+    transition: transform .3s ease-out, -webkit-transform .3s ease-out;
+    -webkit-transform: translate(0, -50px);
+    transform: translate(0, -50px)
+}
+
+@media (prefers-reduced-motion:reduce) {
+    .modal.fade .modal-dialog {
+        transition: none
+    }
+}
+
+.modal.show .modal-dialog {
+    -webkit-transform: none;
+    transform: none
+}
+
+.modal.modal-static .modal-dialog {
+    -webkit-transform: scale(1.02);
+    transform: scale(1.02)
+}
+
+.modal-dialog-scrollable {
+    display: -ms-flexbox;
+    display: flex;
+    max-height: calc(100% - 1rem)
+}
+
+.modal-dialog-scrollable .modal-content {
+    max-height: calc(100vh - 1rem);
+    overflow: hidden
+}
+
+.modal-dialog-scrollable .modal-footer,
+.modal-dialog-scrollable .modal-header {
+    -ms-flex-negative: 0;
+    flex-shrink: 0
+}
+
+.modal-dialog-scrollable .modal-body {
+    overflow-y: auto
+}
+
+.modal-dialog-centered {
+    display: -ms-flexbox;
+    display: flex;
+    -ms-flex-align: center;
+    align-items: center;
+    min-height: calc(100% - 1rem)
+}
+
+.modal-dialog-centered::before {
+    display: block;
+    height: calc(100vh - 1rem);
+    height: -webkit-min-content;
+    height: -moz-min-content;
+    height: min-content;
+    content: ""
+}
+
+.modal-dialog-centered.modal-dialog-scrollable {
+    -ms-flex-direction: column;
+    flex-direction: column;
+    -ms-flex-pack: center;
+    justify-content: center;
+    height: 100%
+}
+
+.modal-dialog-centered.modal-dialog-scrollable .modal-content {
+    max-height: none
+}
+
+.modal-dialog-centered.modal-dialog-scrollable::before {
+    content: none
+}
+
+.modal-content {
+    position: relative;
+    display: -ms-flexbox;
+    display: flex;
+    -ms-flex-direction: column;
+    flex-direction: column;
+    width: 100%;
+    pointer-events: auto;
+    background-color: #fff;
+    background-clip: padding-box;
+    border: 1px solid rgba(0, 0, 0, .2);
+    border-radius: .3rem;
+    outline: 0
+}
+
+.modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 1040;
+    width: 100vw;
+    height: 100vh;
+    background-color: #000
+}
+
+.modal-backdrop.fade {
+    opacity: 0
+}
+
+.modal-backdrop.show {
+    opacity: .5
+}
+
+.modal-header {
+    display: -ms-flexbox;
+    display: flex;
+    -ms-flex-align: start;
+    align-items: flex-start;
+    -ms-flex-pack: justify;
+    justify-content: space-between;
+    padding: 1rem 1rem;
+    border-bottom: 1px solid #dee2e6;
+    border-top-left-radius: calc(.3rem - 1px);
+    border-top-right-radius: calc(.3rem - 1px)
+}
+
+.modal-header .close {
+    padding: 1rem 1rem;
+    margin: -1rem -1rem -1rem auto
+}
+
+.modal-title {
+    margin-bottom: 0;
+    line-height: 1.5
+}
+
+.modal-body {
+    position: relative;
+    -ms-flex: 1 1 auto;
+    flex: 1 1 auto;
+    padding: 1rem
+}
+
+.modal-footer {
+    display: -ms-flexbox;
+    display: flex;
+    -ms-flex-wrap: wrap;
+    flex-wrap: wrap;
+    -ms-flex-align: center;
+    align-items: center;
+    -ms-flex-pack: end;
+    justify-content: flex-end;
+    padding: .75rem;
+    border-top: 1px solid #dee2e6;
+    border-bottom-right-radius: calc(.3rem - 1px);
+    border-bottom-left-radius: calc(.3rem - 1px)
+}
+
+.modal-footer>* {
+    margin: .25rem
+}
+
+.modal-scrollbar-measure {
+    position: absolute;
+    top: -9999px;
+    width: 50px;
+    height: 50px;
+    overflow: scroll
+}
+
+@media (min-width:576px) {
+    .modal-dialog {
+        max-width: 500px;
+        margin: 1.75rem auto
+    }
+
+    .modal-dialog-scrollable {
+        max-height: calc(100% - 3.5rem)
+    }
+
+    .modal-dialog-scrollable .modal-content {
+        max-height: calc(100vh - 3.5rem)
+    }
+
+    .modal-dialog-centered {
+        min-height: calc(100% - 3.5rem)
+    }
+
+    .modal-dialog-centered::before {
+        height: calc(100vh - 3.5rem);
+        height: -webkit-min-content;
+        height: -moz-min-content;
+        height: min-content
+    }
+
+    .modal-sm {
+        max-width: 300px
+    }
+}
+
+@media (min-width:992px) {
+
+    .modal-lg,
+    .modal-xl {
+        max-width: 800px
+    }
+}
+
+@media (min-width:1200px) {
+    .modal-xl {
+        max-width: 1140px
+    }
+}

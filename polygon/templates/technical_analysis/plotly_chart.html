@@ -1,0 +1,116 @@
+{% extends "base.html" %} {% load static %} {% load custom_tags %} {% load
+custom_filters %} {% block content %}
+
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+<script src="{% static '/js/graph.js' %}"></script>
+
+{% include "partials/navbar.html" %}
+    <h1>Графики для {{ symbol }}</h1>
+
+    <!-- Форма для выбора таймфрейма и количества баров -->
+    <form method="get" action="{% url 'plotly_chart_view' %}">
+        <label for="timeframe">Таймфрейм:</label>
+        <select id="timeframe" name="timeframe">
+            {% for tf in timeframes %}
+                <option value="{{ tf }}" {% if tf == selected_timeframe %}selected{% endif %}>{{ tf }}</option>
+            {% endfor %}
+        </select>
+        <label for="candles">Количество баров:</label>
+        <input type="number" id="candles" name="candles" value="{{ selected_candles }}" min="1" max="150">
+        <button type="submit">Go</button>
+    </form>
+
+    <!-- Контейнер управления индикаторами -->
+    <div class="controls-container">
+        <h2>Управление индикаторами</h2>
+        <table>
+            <tr>
+                <td>
+                    <input type="checkbox" id="toggle-candlestick" checked>
+                    <label for="toggle-candlestick">Японские свечи</label>
+                </td>
+                <td>
+                    <input type="checkbox" id="toggle-sma" checked>
+                    <label for="toggle-sma">SMA</label>
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <input type="checkbox" id="toggle-rsi" checked>
+                    <label for="toggle-rsi">RSI</label>
+                </td>
+                <td>
+                    <input type="checkbox" id="toggle-macd" checked>
+                    <label for="toggle-macd">MACD</label>
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <input type="checkbox" id="toggle-macd-signal" checked>
+                    <label for="toggle-macd-signal">MACD Signal</label>
+                </td>
+            </tr>
+        </table>
+    </div>
+
+    <!-- Графики -->
+    {% for tf, chart in charts.items %}
+        <div class="chart">
+            <h2>Таймфрейм: {{ tf }}</h2>
+            <!-- Добавляем id к каждому графику для удобства работы с JS -->
+            <div id="chart-{{ tf|lower }}">{{ chart|safe }}</div>
+        </div>
+    {% endfor %}
+
+    <!-- Скрипт для переключения индикаторов -->
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Функция, которая ищет в графике все трассы с заданным именем и меняет их видимость
+            function updateTraceVisibility(chartDiv, traceName, visible) {
+                var newVisibility = visible ? true : 'legendonly';
+                var updateIndices = [];
+                // chartDiv.data может быть не сразу доступен, поэтому используем Plotly.d3.select
+                var data = chartDiv.data || [];
+                for (var i = 0; i < data.length; i++) {
+                    if (data[i].name === traceName) {
+                        updateIndices.push(i);
+                    }
+                }
+                if (updateIndices.length > 0) {
+                    Plotly.restyle(chartDiv, {'visible': newVisibility}, updateIndices);
+                }
+            }
+
+            // Получаем все графики — тут предполагаем, что id графиков имеют вид "chart-m15", "chart-h1" и т.д.
+            // Если у нас несколько графиков, можно пробежаться по ним
+            var chartIds = [
+                {% for tf in charts.keys %}
+                    "chart-{{ tf|lower }}",
+                {% endfor %}
+            ];
+
+            // Для каждого графика добавляем обработчики событий на чекбоксы
+            chartIds.forEach(function(chartId) {
+                var chartDiv = document.getElementById(chartId);
+                if (!chartDiv) return;
+
+                document.getElementById('toggle-candlestick').addEventListener('change', function() {
+                    updateTraceVisibility(chartDiv, 'Candlestick', this.checked);
+                });
+                document.getElementById('toggle-sma').addEventListener('change', function() {
+                    updateTraceVisibility(chartDiv, 'SMA', this.checked);
+                });
+                document.getElementById('toggle-rsi').addEventListener('change', function() {
+                    updateTraceVisibility(chartDiv, 'RSI', this.checked);
+                });
+                document.getElementById('toggle-macd').addEventListener('change', function() {
+                    updateTraceVisibility(chartDiv, 'MACD', this.checked);
+                });
+                document.getElementById('toggle-macd-signal').addEventListener('change', function() {
+                    updateTraceVisibility(chartDiv, 'MACD Signal', this.checked);
+                });
+            });
+        });
+    </script>
+{% endblock %}

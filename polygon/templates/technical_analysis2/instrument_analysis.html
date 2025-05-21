@@ -1,0 +1,279 @@
+{% extends "base.html" %} {% load static %} {% load custom_tags %} {% load custom_filters %}
+ {% block content %}
+
+  <!-- Включаем наш navbar -->
+  {% include "partials/navbar.html" %}
+
+
+  <!-- Пример: выводим структуру инструмента по каждому таймфрейму -->
+  <!-- Пример: выводим структуру инструмента по каждому таймфрейму -->
+<table class="analysis-table">
+  <thead>
+    <tr>
+      <th>Таймфрейм</th>
+      <th>Сессия</th>
+      <th>Актуальная цена</th>
+      <th>OHLC</th>
+      <th>Pivot Levels</th>
+      <th>Макс/Мин экстремумы</th>
+      <th>Fibonacci OTE</th>
+      <th>Полосы Боллинджера</th>
+      <th>VWAP</th>
+      <th>ATR</th>
+      <th>MFI</th>
+      <th>CCI</th>
+      <th>Stochastic</th>
+      <th>SMA</th>
+      <th>MACD/Signal</th>
+      <th>RSI</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for data in merged_data_by_timeframe %}
+      <tr>
+
+        <!-- Таймфрейм -->
+        <td style="background-color: {{ data.structure.trend_color|default:'#FFFFFF' }};">
+          {{ data.timeframe }}
+        </td>
+
+        <!-- Сессия -->
+        <td class="expandable-cell">{{ session|default:"Нет данных" }}
+          <div class="expanded-content hidden">
+            <table class="inner-table">
+              <tr>
+                <td>Детали ASK/BIT {{ data.timeframe }}</td>
+              </tr>
+              <tr>
+                <td>Trend: {{ data.structure.trend }}</td>
+              </tr>
+              <!-- Другие детали -->
+            </table>
+          </div>
+        </td>
+
+        <!-- Актуальная цена -->
+        <td class="expandable-cell">
+          {{ bid|default:"Нет данных" }}<br>
+          {{ ask|default:"Нет данных" }}
+          <div class="expanded-content hidden">
+            <table class="inner-table">
+              <tr>
+                <td>Детали ASK/BIT {{ data.timeframe }}</td>
+              </tr>
+              <tr>
+                <td>Trend: {{ data.structure.trend }}</td>
+              </tr>
+              <!-- Другие детали -->
+            </table>
+          </div>
+        </td>
+
+        <!-- OHLC -->
+        <td class="expandable-cell">
+          O: {{ data.indicators.ohlc.0.open|floatformat:5|default:"-" }}<br>
+          H: {{ data.indicators.ohlc.0.high|floatformat:5|default:"-" }}<br>
+          L: {{ data.indicators.ohlc.0.low|floatformat:5|default:"-" }}<br>
+          C: {{ data.indicators.ohlc.0.close|floatformat:5|default:"-" }}
+          <div class="expanded-content hidden">
+            <table class="inner-table">
+              <tr>
+                <td>Детали ASK/BIT {{ data.timeframe }}</td>
+              </tr>
+              <tr>
+                <td>Trend: {{ data.structure.trend }}</td>
+              </tr>
+              <!-- Другие детали -->
+            </table>
+          </div>
+        </td>
+
+        <!-- Pivot Levels -->
+        <td class="expandable-cell">
+          Resistance: {{ data.indicators.pp_resistance.0|join:", "|default:"-" }}<br>
+          Pivot: {{ data.indicators.pivot.0|floatformat:5|default:"-" }}<br>
+          Support: {{ data.indicators.pp_support.0|join:", "|default:"-" }}
+          <div class="expanded-content hidden">
+            <table class="inner-table">
+              <tr>
+                <td>Детали ASK/BIT {{ data.timeframe }}</td>
+              </tr>
+              <tr>
+                <td>Trend: {{ data.structure.trend }}</td>
+              </tr>
+              <!-- Другие детали -->
+            </table>
+          </div>
+        </td>
+
+        <!-- Экстремумы -->
+        <td class="expandable-cell">
+          Абсолютный хай: {{ data.market_structure.absolute_high|floatformat:5|default:"-" }}<br>
+          Локальный хай: {{ data.market_structure.local_high|floatformat:5|default:"-" }}<br>
+          Локальный лоу: {{ data.market_structure.local_low|floatformat:5|default:"-" }}<br>
+          Абсолютный лоу: {{ data.market_structure.absolute_low|floatformat:5|default:"-" }}
+          <div class="expanded-content hidden">
+            <table class="inner-table">
+              <tr>
+                <td>Детали ASK/BIT {{ data.timeframe }}</td>
+              </tr>
+              <tr>
+                <td>Trend: {{ data.structure.trend }}</td>
+              </tr>
+              <!-- Другие детали -->
+            </table>
+          </div>
+        </td>
+
+        <!-- Краткая информация -->
+        <td class="expandable-cell">
+          <div class="fib-summary">
+
+            <strong>Текущая цена:</strong> {{ data.fibonacci.current_price|floatformat:5 }}<br>
+            <strong>OTE:</strong>
+            {% if data.ote %}
+            {{ data.fibonacci.ote_levels.61.8|floatformat:5 }} -
+            {{ data.fibonacci.ote_levels.79.0|floatformat:5 }}
+            {% if data.ote.in_ote %}
+              <span style="color: green;">Цена в зоне OTE</span>
+            {% else %}
+              <span style="color: red;">Цена вне зоны OTE</span>
+            {% endif %}
+          {% else %}
+            Нет данных
+          {% endif %}<br>
+            <strong>Ближайшая поддержка:</strong> {{ data.nearest_levels.nearest_support|floatformat:5 }}<br>
+            <strong>Ближайшее сопротивление:</strong> {{ data.nearest_levels.nearest_resistance|floatformat:5 }}
+          </div>
+          <div class="fib-details hidden">
+            <strong>Уровни Фибоначчи:</strong><br>
+            {% for level, value in data.fibonacci.fib_levels.items %}
+              {{ level }}: {{ value|floatformat:5 }}<br>
+            {% endfor %}
+            <br>
+
+            <strong>Диапазоны Фибоначчи:</strong><br>
+            {% for level, range_value in data.fibonacci.fib_ranges.items %}
+              {{ level }}: {{ range_value|floatformat:5 }}<br>
+            {% endfor %}
+            <br>
+
+            <strong>Экстремумы:</strong><br>
+            High: {{ fib_data.absolute_high|floatformat:5 }}<br>
+            Low: {{ fib_data.absolute_low|floatformat:5 }}<br>
+            Local High: {{ fib_data.local_high }}<br>
+            Local Low: {{ fib_data.absolute_low|floatformat:5 }}<br>
+            <br>
+{% comment %}
+<td>{{ fib_data.local_high }}</td>
+<td>{{ fib_data.local_low }}</td>
+<td>{{ fib_data.absolute_high }}</td>
+<td>{{ fib_data.absolute_low }}</td>
+{% endcomment %}
+            <strong>Временные зоны:</strong><br>
+            {% for zone, time in data.time_zones.items %}
+              {{ zone }}: {{ time|date:"Y-m-d H:i:s" }}<br>
+            {% endfor %}
+          </div>
+          <!-- Кнопка для разворачивания -->
+          <button class="toggle-details">Показать детали</button>
+        </td>
+
+        <!-- Полосы Боллинджера (верхняя граница) -->
+        <td>
+          {{ data.indicators.upper_band.0|floatformat:5|default:"-" }}<br>Нижний: {{ data.indicators.lower_band.0|floatformat:5 }}
+        </td>
+        <!-- VWAP -->
+        <td>
+          {{ data.indicators.vwap|join:", "|default:"-" }}
+        </td>
+        <!-- ATR -->
+        <td>
+          {{ data.indicators.atr.0|floatformat:5|default:"-" }}
+        </td>
+        <!-- MFI -->
+        <td>
+          {{ data.indicators.mfi.0|floatformat:5|default:"-" }}
+        </td>
+        <!-- CCI -->
+        <td>
+          {{ data.indicators.cci.0|floatformat:5|default:"-" }}
+        </td>
+
+        <!-- Stochastic (только K здесь, при желании можно выводить D) -->
+        <td>
+          {{ data.indicators.stochastic_k.0|floatformat:5|default:"-" }}
+        </td>
+
+        <!-- SMA -->
+        <td>
+          {{ data.indicators.sma.0|floatformat:5|default:"-" }}
+        </td>
+
+        <!-- MACD/Signal -->
+        <td>
+          MACD: {{ data.indicators.macd.0|floatformat:5|default:"-" }},
+          Signal: {{ data.indicators.signal.0|floatformat:5|default:"-" }}
+        </td>
+
+        <!-- RSI -->
+        <td>
+          {{ data.indicators.rsi.0|floatformat:5|default:"-" }}
+        </td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+
+
+  </table>
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    // Функция для разворачивания/сворачивания
+    const toggleDetails = (selector, detailClass) => {
+      document.querySelectorAll(selector).forEach(element => {
+        element.addEventListener("click", () => {
+          const details = element.querySelector(detailClass);
+          if (details) {
+            details.classList.toggle("hidden");
+          }
+        });
+      });
+    };
+
+    toggleDetails(".fib-cell", ".fib-details");
+    toggleDetails(".expandable-cell", ".expanded-content");
+
+    // Копирование цены в буфер обмена
+    document.querySelectorAll(".copy-price").forEach(element => {
+      element.addEventListener("click", event => {
+        event.stopPropagation(); // Остановить всплытие
+        const priceToCopy = element.dataset.price;
+        if (priceToCopy) {
+          navigator.clipboard.writeText(priceToCopy)
+            .then(() => {
+              element.style.backgroundColor = "#d4edda"; // Успешный фон
+              setTimeout(() => element.style.backgroundColor = "", 1000); // Сброс через секунду
+            })
+            .catch(err => console.error("Ошибка копирования цены: ", err));
+        }
+      });
+    });
+
+    // Установление цвета ячейки на основе тренда
+    document.querySelectorAll(".expandable-cell").forEach(cell => {
+      const trendElement = cell.querySelector(".expanded-content td:nth-child(2)");
+      const trend = trendElement ? trendElement.innerText.toLowerCase() : "";
+      if (trend === "лонговый") {
+        cell.style.backgroundColor = "#d4edda"; // Зелёный фон
+      } else if (trend === "шортовый") {
+        cell.style.backgroundColor = "#f8d7da"; // Красный фон
+      }
+    });
+  });
+</script>
+
+
+  {% endblock %}
+</div>

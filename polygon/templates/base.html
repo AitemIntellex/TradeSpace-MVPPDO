@@ -1,0 +1,328 @@
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>
+      {% block title %}Jafar TradeSpace | {{ page_title }}{% endblock %}
+    </title>
+
+    {% load static %}
+
+    <!-- Stylesheets -->
+    <link
+      rel="icon"
+      href="{% static 'img/favicon.ico' %}"
+      type="image/x-icon"
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css"
+      rel="stylesheet"
+    />
+
+    <link
+      rel="stylesheet"
+      href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"
+    />
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}" />
+  </head>
+  <style>
+    body {
+      background-color: #1a1a1a;
+      color: #e0e0e0;
+      font-family: "Arial", sans-serif;
+      margin: 0;
+    }
+
+    .wrapper {
+      display: flex;
+      min-height: 100vh;
+    }
+
+    .sidebar {
+      width: 250px;
+      background: #2a2a2a;
+      color: #e0e0e0;
+      position: fixed;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      overflow-y: auto;
+      box-shadow: 2px 0 5px rgba(0, 0, 0, 0.5);
+      transition: transform 0.3s ease-in-out;
+    }
+
+    .sidebar-sticky {
+      padding-top: 20px;
+      padding-bottom: 20px;
+    }
+
+    .logo {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .sidebar-toggle {
+      background: none;
+      border: none;
+      color: #ff8c00;
+      font-size: 1.5em;
+    }
+
+    .nav-link {
+      display: flex;
+      align-items: center;
+      padding: 10px 20px;
+      color: #e0e0e0;
+      text-decoration: none;
+      transition: background 0.2s ease-in-out;
+    }
+
+    .nav-link:hover {
+      background: #333;
+    }
+
+    .nav-link.active {
+      background: #ff8c00;
+      color: #fff;
+    }
+
+    .nav-link .icon {
+      margin-right: 10px;
+      font-size: 1.2em;
+    }
+
+    .nav-link .icon i {
+      color: #e0e0e0;
+    }
+
+    .nav-link.active .icon i {
+      color: #fff;
+    }
+
+    .nav-link .text {
+      font-size: 1em;
+    }
+
+    .nav .submenu {
+      padding-left: 20px;
+      max-height: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease-in-out;
+    }
+
+    .nav .submenu.active {
+      max-height: 500px;
+    }
+
+    .nav .submenu .nav-link {
+      padding: 8px 20px;
+      font-size: 0.9em;
+    }
+
+    .nav .submenu .nav-link:before {
+      content: "➤";
+      margin-right: 10px;
+      color: rgb(41, 40, 39);
+    }
+
+    .nav .submenu .nav-link:hover {
+      background: #444;
+      color: rgb(44, 42, 40);
+    }
+
+    .main {
+      margin-left: 250px;
+      padding: 20px;
+      width: 100%;
+    }
+
+    @media (max-width: 768px) {
+      .sidebar {
+        width: 200px;
+        transform: translateX(-100%);
+      }
+
+      .sidebar.active {
+        transform: translateX(0);
+      }
+
+      .main {
+        margin-left: 0;
+      }
+    }
+
+    .jafar-cloud-container {
+      width: 128px;
+      height: 128px;
+      margin: 0 auto;
+      cursor: pointer;
+      transition: transform 0.3s ease-in-out;
+    }
+
+    .jafar-cloud {
+      width: 100%;
+      height: 100%;
+    }
+
+    .jafar-cloud-container:hover {
+      transform: scale(1.1);
+    }
+
+    .jafar-cloud-container:hover .jafar-cloud circle {
+      fill: #121212;
+      /* Цвет при наведении */
+    }
+  </style>
+  <body>
+    <div class="wrapper">
+      <nav class="sidebar">
+        <div class="sidebar-sticky">
+          <div class="logo">
+            <div type="button" class="btn btn-sm sidebar-toggle" onclick="toggleSidebar()">
+              <!-- Облачко Jafar -->
+              <div class="jafar-cloud-container">
+                <svg viewBox="0 0 200 200" class="jafar-cloud">
+                  <defs>
+                    <filter id="glow">
+                      <feGaussianBlur stdDeviation="5" result="coloredBlur" />
+                      <feMerge>
+                        <feMergeNode in="coloredBlur" />
+                        <feMergeNode in="SourceGraphic" />
+                      </feMerge>
+                    </filter>
+                  </defs>
+                  <circle cx="100" cy="100" r="60" fill="#344344" filter="url(#glow)">
+                    <animate attributeName="r" values="60;65;60" dur="3s" repeatCount="indefinite" />
+                  </circle>
+                  <circle cx="140" cy="80" r="30" fill="#494949" opacity="0.5" filter="url(#glow)">
+                    <animate attributeName="r" values="30;35;30" dur="4s" repeatCount="indefinite" />
+                  </circle>
+                  <circle cx="70" cy="120" r="40" fill="#494949" opacity="0.3" filter="url(#glow)">
+                    <animate attributeName="r" values="40;45;40" dur="5s" repeatCount="indefinite" />
+                  </circle>
+                </svg>
+              </div>
+            </div>
+          </div>
+          <br /><br />
+          <ul class="nav flex-column">
+            <li class="nav-item">
+              <a
+                class="nav-link {% if request.resolver_match.url_name == 'home' %}active{% endif %}"
+                href="{% url 'home' %}"
+              >
+                <span class="icon">
+                  <img
+                    src="{% static 'img/dashboard.png' %}"
+                    alt="Dashboard Icon"
+                    width="24px"
+                    height="24px"
+                  />
+                </span>
+                <span class="text">Dashboard</span>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a
+                class="nav-link {% if request.resolver_match.url_name == 'fundamental_analysis' %}active{% endif %}"
+                href="{% url 'fundamental_analysis' %}"
+              >
+                <span class="icon">
+                  <img
+                    src="{% static 'img/fundamental.png' %}"
+                    alt="Driver Status Icon"
+                    width="24px"
+                    height="24px"
+                  />
+                </span>
+                <span class="text">Фунд. анализ</span>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a
+                class="nav-link {% if request.resolver_match.url_name == 'technical_analysis' %}active{% endif %}"
+                href="{% url 'technical_analysis' %}"
+              >
+                <span class="icon">
+                  <img
+                    src="{% static 'img/technical-analysis.png' %}"
+                    alt="Load Board Icon"
+                    width="24px"
+                    height="24px"
+                  />
+                </span>
+                <span class="text">Тех. анализ</span>
+              </a>
+            </li>
+
+            <li class="nav-item">
+              <a
+                class="nav-link {% if request.resolver_match.url_name == 'ai_analysis' %}active{% endif %}"
+                href="{% url 'ai_analysis' %}"
+              >
+                <span class="icon">
+                  <img
+                    src="{% static 'img/ai-ico.png' %}"
+                    alt="Weekly Gross Icon"
+                    width="24px"
+                    height="24px"
+                  />
+                </span>
+                <span class="text">AI Анализ</span>
+              </a>
+            </li>
+            <li class="nav-item">
+              <a
+                class="nav-link {% if request.resolver_match.url_name == 'recommendations_list' %}active{% endif %}"
+                href="{% url 'recommendations_list' %}"
+              >
+                <span class="icon">
+                  <img
+                    src="{% static 'img/recomendation.png' %}"
+                    alt="Map Icon"
+                    width="24px"
+                    height="24px"
+                  />
+                </span>
+                <span class="text">Рекомендации</span>
+              </a>
+            </li>
+
+          </ul>
+        </div>
+      </nav>
+
+      <div class="main">
+        {% include 'header.html' %}
+        <div>{% include 'for_all_pages.html' %}</div>
+        <div class="content-container">
+          {% block content %}
+          <!-- Здесь должен быть основной контент страницы -->
+          {% endblock %}
+        </div>
+      </div>
+    </div>
+
+    <!-- JS Scripts -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    {% comment %}
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    {% endcomment %} {% comment %} {% endcomment %}
+
+    <script src="{% static 'js/copypa.js' %}"></script>
+    <script src="{% static 'js/webspace-scrol.js' %}"></script>
+    <script src="{% static 'js/webspace-min.js' %}"></script>
+    <script src="{% static 'js/webspace.js' %}"></script>
+  </body>
+</html>

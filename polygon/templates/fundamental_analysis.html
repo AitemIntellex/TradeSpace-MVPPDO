@@ -1,0 +1,63 @@
+{% extends "base.html" %} {% load static %} {% block content %}
+<div class="grid-container">
+  {% if error %}
+  <div class="alert alert-danger" role="alert">Ошибка: {{ error }}</div>
+  {% endif %}
+
+  <div class="card bg-dark text-white mb-4">
+    <div class="card2-custom">
+      <h3>Экономический Календарь (сегодня, минимум 2 звезды)</h3>
+      {% if economic_calendar %}
+      <table class="card2-custom">
+        <thead>
+          <tr>
+            <th>Событие</th>
+            <th>Время</th>
+            <th>Страна</th>
+            <th>Влияние</th>
+            <th>Факт</th>
+            <th>Предыдущее</th>
+            <th>Ожидается</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for event in economic_calendar %}
+          <tr>
+            <td>{{ event.name }}</td>
+            <td>{{ event.time }}</td>
+            <td>{{ event.country }}</td>
+            <td>{% for i in "1"|center:event.impact %}★{% endfor %}</td>
+
+            <td>{{ event.fact|default:"Нет данных" }}</td>
+            <td>{{ event.previous|default:"Нет данных" }}</td>
+            <td>{{ event.expected|default:"Нет данных" }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <p class="text-light">Нет доступных событий.</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="card bg-dark text-white mb-4">
+    <div class="card-body">
+      <h3>Последние Новости RSS</h3>
+      {% if rss_news %}
+      <ul class="list-group list-group-flush">
+        {% for news in rss_news %}
+        <li class="list-group-item bg-dark text-white">
+          <strong>{{ news.title }}</strong><br />
+          <p>{{ news.summary }}</p>
+          <a href="{{ news.link }}" target="_blank">Читать подробнее...</a>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p class="text-light">Нет доступных новостей.</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

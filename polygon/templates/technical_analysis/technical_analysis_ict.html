@@ -1,0 +1,78 @@
+{% extends "base.html" %} {% load static %} {% load custom_filters %} {% block
+content %}
+
+<!-- Включаем наш navbar (если есть) -->
+{% include "partials/navbar.html" %}
+
+<h2>ICT Strategy</h2>
+<table border="1">
+  <thead>
+    <tr>
+      <th>Parameter</th>
+      <th>Value</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for key, value in ict_strategy.items %}
+    <tr>
+      <td>{{ key }}</td>
+      <td>
+        {% if value is mapping %}
+        <pre>{{ value|safe }}</pre>
+        {% elif value is iterable and not value|is_string %} {{ value|join:", "
+        }} {% else %} {{ value }} {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<h2>SMC Strategy</h2>
+<table border="1">
+  <thead>
+    <tr>
+      <th>Parameter</th>
+      <th>Value</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for key, value in smc_strategy.items %}
+    <tr>
+      <td>{{ key }}</td>
+      <td>
+        {% if value is mapping %}
+        <pre>{{ value|safe }}</pre>
+        {% elif value is iterable and not value|is_string %} {{ value|join:", "
+        }} {% else %} {{ value }} {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<h2>SNR Strategy</h2>
+<table border="1">
+  <thead>
+    <tr>
+      <th>Parameter</th>
+      <th>Value</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for key, value in snr_strategy.items %}
+    <tr>
+      <td>{{ key }}</td>
+      <td>
+        {% if value is mapping %}
+        <pre>{{ value|safe }}</pre>
+        {% elif value is iterable and not value|is_string %} {{ value|join:", "
+        }} {% else %} {{ value }} {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+{% endblock %} {% comment %} Ошибка в technical_analysis_strategies: Invalid
+block tag on line 76: 'endblock'. Did you forget to register or load this tag?
+{% endcomment %}

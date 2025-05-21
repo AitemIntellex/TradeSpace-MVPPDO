@@ -1,0 +1,85 @@
+<!-- Единая форма для всех анализов -->
+<form method="POST" class="inline-form">
+  {% csrf_token %}
+  <input type="hidden" name="symbol" value="{{ selected_pair }}">
+  <button type="submit" name="analyze_with_ai" class="btn btn-ghost btn-dark">Анализ</button>
+  <button type="submit" name="news_overview" class="btn btn-ghost btn-dark">Новостной обозреватель</button>
+</form>
+
+<!-- Карточки для результатов -->
+<div id="ai-analysis-container" class="rec-container">
+  <h5>Анализ #1</h5>
+  <div id="ai-analysis-text">
+    {% if ai_analysis %}{{ ai_analysis|safe }}{% else %}{% endif %}
+  </div>
+</div>
+
+
+<div id="news-analysis-container" class="rec-container">
+  <h5>Новостной обозреватель</h5>
+  <div id="news-analysis-text">
+    {% if news_analysis %}{{ news_analysis|safe }}{% else %}<p>Ожидание анализа...</p>{% endif %}
+  </div>
+</div>
+
+
+<!-- Обновлённый JavaScript -->
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const form = document.querySelector("form.inline-form");
+    const buttons = form.querySelectorAll("button[type='submit']");
+    const containers = {
+      "analyze_with_ai": "ai-analysis-text",
+      "analyze_x3": "x3-analysis-text",
+      "analyze_with_history": "historical-analysis-text",
+      "news_overview": "news-analysis-text",
+      "deep_tech_analyst": "deep-tech-analysis-text"
+    };
+
+    buttons.forEach(button => {
+      button.addEventListener("click", async function (e) {
+        e.preventDefault();
+        const buttonName = button.name;
+        const textContainer = document.getElementById(containers[buttonName]);
+        const csrfToken = form.querySelector('[name="csrfmiddlewaretoken"]').value;
+
+        button.disabled = true;
+        button.textContent = "Анализ выполняется...";
+
+        try {
+          const response = await fetch(window.location.pathname + window.location.search, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/x-www-form-urlencoded",
+              "X-CSRFToken": csrfToken
+            },
+            body: new URLSearchParams({
+              "csrfmiddlewaretoken": csrfToken,
+              "symbol": "{{ selected_pair }}",
+              [buttonName]: "1"
+            })
+          });
+
+          if (!response.ok) throw new Error("Ошибка запроса: " + response.statusText);
+          const html = await response.text();
+          const parser = new DOMParser();
+          const doc = parser.parseFromString(html, "text/html");
+          const newContent = doc.querySelector(`#${containers[buttonName]}`).innerHTML;
+          textContainer.innerHTML = newContent;
+
+          // Подсветка ключевых слов
+          textContainer.innerHTML = textContainer.innerHTML
+            .replace(/Тейк-профит/gi, '<span style="color: yellow; font-weight: bold;">Тейк-профит</span>')
+            .replace(/Стоп-лосс/gi, '<span style="color: red; font-weight: bold;">Стоп-лосс</span>');
+        } catch (error) {
+          console.error("Ошибка:", error);
+          textContainer.innerHTML = "<p>Произошла ошибка при выполнении анализа.</p>";
+        } finally {
+          button.disabled = false;
+          button.textContent = button.textContent.replace("Анализ выполняется...", buttonName === "analyze_x3" ? "Анализ x3" : buttonName === "analyze_with_history" ? "Анализ х50 (история)" : button.textContent);
+        }
+      });
+    });
+  });
+</script>
+</div>
